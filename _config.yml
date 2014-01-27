@@ -1,0 +1,40 @@
+# visit https://github.com/mojombo/jekyll/wiki/Configuration for more settings
+name: Marco Yuen's Homepage
+markdown: kramdown
+paginate: 10
+paginate_path: "page:num"
+pygments: true
+baseurl:
+exclude: ["README.md"] # files to exclude
+
+title: Marco Yuen
+description: Marco Yuen homepage
+author:
+  name: Marco Yuen
+  email: marcoy@gmail.com
+  github: marcoy
+  bitbucket: marcoy
+  twitter: marcoyyk
+  linkedin: marcoyuen
+  bio: A software engineer in The Big Apple
+  email_md5: f9f6870163cc5a18b5fb2dde8378d7b5
+
+rss_path: feed.xml
+categories_path: categories.html
+tags_path: tags.html
+
+kramdown:
+  auto_ids: true
+  footnote_nr: 1
+  entity_output: as_char
+  toc_levels: 1..6
+  smart_quotes: lsquo,rsquo,ldquo,rdquo
+  use_coderay: true
+
+  coderay:
+    coderay_wrap: div
+    coderay_line_numbers: inline
+    coderay_line_numbers_start: 1
+    coderay_tab_width: 4
+    coderay_bold_every: 10
+    coderay_css: style
