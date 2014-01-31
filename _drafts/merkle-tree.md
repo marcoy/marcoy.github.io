@@ -11,19 +11,67 @@ nodes contain the hashes of some data, and the internal nodes contain hashes of
 their children. It provides a quick way to verify data. For example, in a
 peer-to-peer network, a peer can use a Merkle Tree or parts of it (explain
 later) to quickly verify the data it receives from other peers have not been
-tampered with, or the data are not corrupted during the transmission.
+tampered with, or the data are not corrupted during the transmission. Borrowing
+from wikipedia, below is a picture of what a Merkle Tree looks like.
 
-Hash function
+<div class="text-center">
+  <img src="http://upload.wikimedia.org/wikipedia/commons/thumb/9/95/Hash_Tree.svg/500px-Hash_Tree.svg.png"
+       height="300"
+       width="300"
+       alt="Merkle Tree" />
+</div>
 
+The data blocks can be anything from a file being split into blocks or a set of
+files. From the picture, it is easy to see that only top hash is needed to
+verify the data blocks are valid. As a result, the top hash is usually acquired
+through a trusted source, for example, inside a
+[\*.torrent](http://www.bittorrent.org/beps/bep_0030.html) file. If any of the
+data block is corrupted or altered, the hashes along the path from root to the
+corrupted block will be different.
+
+As mentioned earlier, you can verify the validity a data block without having
+the whole Merkle Tree. Referring to the above diagram, say, if you want to
+verify if data block `1` is valid, you only need `Hash 0-1` and `Hash 1`, which
+you can get from your peers. First, you hash data block `1`, which gives you
+`Hash 0-0`. Second, you combine `Hash 0-0` with `Hash 0-1` in order to compute
+`Hash 0`. Then combine `Hash 0` and `Hash 1` to get the root hash. Finally, you
+can compare the root hash with the one you acquired through a trusted source. If
+they match, that means data block `1` is valid. However, if they don't match, it
+could mean either one or a combination of `Hash 0-1`, `Hash 1` or data block `1`
+is invalid.
+
+
+#### Hash Function
+Since a Merkle Tree is basically a tree of hashes, a hash function is a
+crucial component. I'm using `SHA-1` as the hash function. You are free to
+choose whatever hash function, of course.
+
+Below is the hash function I'm using in my Merkle Tree implementation. I'm using
+the SHA-1 implementation that comes with JAVA. The output of the function is a
+hex string. The input can either be a `String`, or `byte[]`.
 {% highlight clojure lineanchors=line %}
 (defn hashfn [v]
   (apply str (map #(format "%02x" %)
                   (-> (doto (MessageDigest/getInstance "SHA-1")
-                        (.update (.getBytes (str v) "UTF-8")))
+                        (.update (.getBytes (String. v) "UTF-8")))
                       .digest))))
 {% endhighlight %}
 
-The meat of the code
+
+#### Tree Construction
+The approach of this implementation is to, first, create a full binary tree,
+then stick the hashes from the data blocks into the leaf nodes. Finally, compute
+hashes all the up to the root.
+
+A quick note about the tree representation. I choose to use a linked list
+approach, where each node has a reference to its right and left subtrees. Every
+node in the tree is a dictionary like the following:
+{% highlight clojure lineanchors=line %}
+(def node {:left nil :right nil :hashval nil :height height})
+{% endhighlight %}
+
+Here is a more detail rundown of the implementation. Given a list of hashes, my
+implementation will construct a full binary tree
 
 {% highlight clojure lineanchors=line %}
 (defn merkle-tree
@@ -40,6 +88,8 @@ The meat of the code
                  (assoc :left left-tree)
                  (assoc :right right-tree))]
        ;; update hashval of current node
+       ;; if it is a leaf node, take a hash from hash list. Otherwise,
+       ;; hash the concatenation of its children's hashes.
        (if (> height 0)
          [(assoc n :hashval (hashfn (str (:hashval left-tree)
                                          (:hashval right-tree))))
