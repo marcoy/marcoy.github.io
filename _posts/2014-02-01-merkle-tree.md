@@ -7,9 +7,9 @@ tags: [data structures,python]
 ---
 
 [Merkle Tree](http://en.wikipedia.org/wiki/Merkle_tree) is a tree where the leaf
-nodes contain the hashes of some data, and the internal nodes contain hashes of
-their children. It provides a quick way to verify data. For example, in a
-peer-to-peer network, a peer can use a Merkle Tree or parts of it (explain
+nodes contain the hashes of some data blocks, and the internal nodes contain
+hashes of their children. It provides a quick way to verify data. For example,
+in a peer-to-peer network, a peer can use a Merkle Tree or parts of it (explain
 later) to quickly verify the data it receives from other peers have not been
 tampered with, or the data are not corrupted during the transmission. Borrowing
 from wikipedia, below is a picture of what a Merkle Tree looks like.
@@ -64,14 +64,21 @@ then stick the hashes from the data blocks into the leaf nodes. Finally, compute
 hashes all the up to the root.
 
 A quick note about the tree representation. I choose to use a linked list
-approach, where each node has a reference to its right and left subtrees. Every
-node in the tree is a dictionary like the following:
+approach, where each node has a reference to its right and left subtrees.
+Another approach is to use an array to represent that tree. In my
+implementation, Every node in the tree is a dictionary like the following:
 {% highlight clojure lineanchors=line %}
 (def node {:left nil :right nil :hashval nil :height height})
 {% endhighlight %}
 
 Here is a more detail rundown of the implementation. Given a list of hashes, my
-implementation will construct a full binary tree
+implementation will construct a full binary tree with sufficient height such
+that the hashes in the hash list can be filled into leaf nodes. The unfilled
+leaf nodes will be filled with empty strings. The implementation recursively
+constructs the tree from top to bottom in a depth-first fashion. The hash value
+for a node is set after both its children are constructed. As it recurses down
+to a leaf node, it will grab a hash from the given hash list. The updated
+hash list is returned when it unwinds from the recursion.
 
 {% highlight clojure lineanchors=line %}
 (defn merkle-tree
@@ -96,3 +103,33 @@ implementation will construct a full binary tree
           new-hashes]
          [(assoc n :hashval (first new-hashes)) (drop 1 new-hashes)])))))
 {% endhighlight %}
+
+#### Usage
+Let's define two helper functions, `random-bytes`, and `create-hash-list`. These
+functions help making a list of hashes easily.
+{% highlight clojure lineanchors=line %}
+(defn random-bytes
+  ([] (random-bytes 20))
+  ([n] (let [r (SecureRandom.)
+             rand-bytes (byte-array n)]
+         (do
+           (.nextBytes r rand-bytes)
+           rand-bytes))))
+
+(defn create-hash-list [n]
+  (map hashfn (take n (repeatedly random-bytes))))
+{% endhighlight %}
+
+Now you can construct a Merkle tree based on a list of hashes, and get its top
+hash.
+
+{% highlight clojure lineanchors=line %}
+user=> (:hashval (merkle-tree (create-hash-list 2)))
+"f80ca0da9657a67cc7767ba3aa64658715b5b69f"
+{% endhighlight %}
+
+#### Conclusion
+There is a main drawback with this implementation. Since the implementation is
+using recursion, if the given hash list is very long, the `merkle-tree` function
+will blow the stack. All in all, Merkle Tree is a really neat data structure
+that has many applications, especially in the space of peer-to-peer networks.
