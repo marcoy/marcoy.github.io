@@ -3,7 +3,7 @@ layout: post
 title: Merkle Tree
 tagline:
 categories: [articles]
-tags: [data structures,python]
+tags: [data structures,clojure]
 ---
 
 [Merkle Tree](http://en.wikipedia.org/wiki/Merkle_tree) is a tree where the leaf
