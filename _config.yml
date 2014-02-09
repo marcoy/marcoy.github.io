@@ -5,7 +5,8 @@ paginate: 10
 paginate_path: "page:num"
 pygments: true
 baseurl:
-exclude: ["README.md"] # files to exclude
+exclude: ["README.md", "Gemfile", "Gemfile.lock", ".git"] # files to exclude
+timezone: America/New_York
 
 title: Marco Yuen
 description: Marco Yuen homepage
