@@ -14,19 +14,21 @@ sources, and publishes them to a RabbitMQ's topic exchange. Please read the
 [Bitpub](https://github.com/marcoy/bitpub) on how to run the publisher and
 consumer.
 
+#### Polling
 The project uses [core.async](https://github.com/clojure/core.async) to poll the
 sources for ticker data. The supported sources are [CampBx](https://campbx.com),
 [Bitstamp](https://www.bitstamp.net), [Vircurex](http://vircurex.com),
 [BTC-e](https://btc-e.com), and [BTC China](https://vip.btcchina.com). The logic
-of the polling, shown below, will poll the given ticker URL to `GET` the market
-data. It tries to place the value to the `out` channel. If no process is
-consuming the `out` channel, it will wait for a specified time and poll the
-ticker URL again. This ensures the data that a consumer receives are kept somewhat
-up-to-date.  There is a timeout for the initial `GET` request. If the `GET`
-request timeout has elapsed, it will retry again. All of these polling logics
-are performed inside a `go` block, which is similar to
+of the polling, shown below, will poll a given ticker URL to `GET` the market
+data. It will place the data returned from the `GET` request into the `out`
+channel. If no process is consuming the `out` channel, it will wait for a
+specified time and poll the ticker URL again. This ensures the data that a
+consumer receives are kept somewhat up-to-date. There is a timeout for the
+initial `GET` request. If the `GET` request timeout has elapsed, it will retry
+again. All of these polling logics are performed inside a `go` block, which is
+similar to
 [goroutines](https://gobyexample.com/goroutines) in [Go](http://golang.org/). As
-a result, the polling is done in a thread pool. In turn, multiple _feeds_ can be
+a result, the polling is done in a thread pool. So, multiple _feeds_ can be
 constructed, and poll concurrently.
 
 {% highlight clojure lineanchors=line %}
@@ -55,8 +57,9 @@ constructed, and poll concurrently.
 
 There are a few options for `create-ticket-feed` function. They are all related
 to timings, because different sources have different timing restrictions when
-polling, in order to prevent abuse. If the `go` block polls a source too
-frequently, it may get banned by the source. The options are:
+polling. The timing restrictions are set in place, in order to prevent abuse. If
+the `go` block polls a source too frequently, it may get banned by the source.
+The options are:
 
 `:get-timeout`
  : The time it waits for a reply from the GET request before retrying (in ms).
@@ -65,24 +68,40 @@ frequently, it may get banned by the source. The options are:
  : The time it waits for a consumer to consume the value (in ms).
 
 `:park-time-fn`
- : A function that returns an integer. The integer will be used as the park time
-   before it re-polls the ticker url again.
+ : A function that returns an integer (in ms). The integer will be used as the
+   park time before the `go` block re-polls the ticker url again. This is dictated by the
+   source's timing restriction.
 
 To create a feed from, say, [CampBx](https://campbx.com).
 
 {% highlight clojure lineanchors=line %}
 (create-ticker-feed
   "http://campbx.com/api/xticker.php"
+  ;; GET request timed out after 30s
   :get-timeout 30000
+  ;; If no process is consuming the out channel, re-poll
   :async-put-timeout 10000
+  ;; Wait at least 1s between each poll
+  ;; rand-int is to introduce some variance
   :park-time-fn #(+ 1000 (rand-int 1500)))
 {% endhighlight %}
 
-#### Subscribing to a feed
+#### Publishing feeds
+The return value for `create-ticker-feed` is a channel. From that channel, a
+consumer can acquire the market data and then perform whatever action it needs
+to perform. In the publisher's case, whenever it receives any market data, it
+will publish the data out to a topic exchange of a RabbitMQ instance.  Actually,
+the publisher I implemented does a little bit more. All the data that it
+receives from the channel get passed through a function (using
+[mapv\<](http://clojure.github.io/core.async/#clojure.core.async/map<)). The
+function is used to clean up the market data. One example for such function is
+to transform all the string keys into Clojure `keywords`.
+
+#### Subscribing to feeds
 As described earilier, the data will be published to a RabbitMQ's topic
 exchange. Each feed will have the routing key of the form `ticker.$feedname`.
-So, to subscribe to the [CampBx](https://campbx.com)'s feed, you will need to
+So, to subscribe to the [CampBx](https://campbx.com) feed, you will need to
 subscribe to `ticker.campbx`. Moreover, if you want to subscribe to all feeds,
 then you will need to subscribe to `ticker.#`.
 [Bitpub](https://github.com/marcoy/bitpub) comes a basic consumer the subscribe
-to all feeds, and dump all the data out to the terminal.
+to all feeds, and dump all the data out to `STDOUT`.
