@@ -3,7 +3,8 @@ name: Marco Yuen's Homepage
 markdown: kramdown
 paginate: 10
 paginate_path: "page:num"
-pygments: true
+# pygments: true
+highlighter: pygments
 baseurl:
 exclude: ["README.md", "Gemfile", "Gemfile.lock", ".git"] # files to exclude
 timezone: America/New_York
