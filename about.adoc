@@ -1,0 +1,13 @@
+---
+# Need front matter here so Jekyll will pick this up and include this to site.pages
+---
+= About
+:page-layout: page
+:page-title: About
+:page-permalink: /about/
+
+My name is Marco Yuen. I am a software developer in New York City, and I have been living
+in the city for more than five years.
+Originally, I am from west coast Canada.
+My interests are functional programming, type systems, concurrency, and distributed systems.
+When I am not in front of a computer, I do Crossfit and watch Rugby.

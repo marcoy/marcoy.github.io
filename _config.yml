@@ -1,0 +1,32 @@
+title: Marco Yuen
+email: marcoy@gmail.com
+description: Life and Programming
+baseurl: ""
+url: "http://yourdomain.com" # the base hostname & protocol for your site
+
+# Social media
+twitter_username: marcoyyk
+github_username:  marcoy
+linkedin_username: marcoyuen
+
+# Build settings
+markdown: kramdown
+
+timezone: America/New_York
+
+gems:
+    - jekyll-asciidoc
+
+asciidoctor:
+  attributes:
+    - idprefix=_
+    - source-highlighter=pygments
+    - pygments-css=style
+    - icons=font
+    - hardbreaks!
+
+exclude:
+    - Gemfile
+    - Gemfile.lock
+    - LICENSE.txt
+    - build.sh

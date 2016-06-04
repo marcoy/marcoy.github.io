@@ -1,0 +1,8 @@
+---
+# Need front matter here so Jekyll will pick this up and include this to site.pages
+---
+= Resume
+:page-layout: page
+:page-permalink: /resume/
+
+Here is a copy of my resume in http://s3.amazonaws.com/marcoy_resume/resume.pdf[PDF] format.
