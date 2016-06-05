@@ -1,0 +1,8 @@
+= Some Updates
+:page-layout: post
+
+I have been on hiatus for more than two years now.
+So I have decided to update the site's layout and add some new content.
+Since the past two years, a lot have changes.
+I have a different job, and I get even more into functional programming.
+In addition to Clojure, I get into Haskell, and recently Scala.
