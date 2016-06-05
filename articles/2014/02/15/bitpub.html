@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html>
+
+  <head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <title>Introducing bitpub</title>
+  <meta name="description" content="Bitpub was a project I started about twomonths ago. One of the main goals of the project is to build something thatutilizes RabbitMQ. In essence, bitpub fetc...">
+  <link href='https://fonts.googleapis.com/css?family=PT+Sans:400,700,400italic,700italic' rel='stylesheet' type='text/css'>
+  <link href='https://fonts.googleapis.com/css?family=Source+Sans+Pro:400,700,200,300' rel='stylesheet' type='text/css'>
+  <link href='https://fonts.googleapis.com/css?family=Josefin+Sans:400,600,700,300' rel='stylesheet' type='text/css'>
+
+  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.6.3/css/font-awesome.min.css">
+  <link rel="stylesheet" href="/css/style.css">
+  <link rel="stylesheet" href="/css/asciidoctor.css">
+  <link rel="canonical" href="http://yourdomain.com/articles/2014/02/15/bitpub.html">
+  <link rel="alternate" type="application/rss+xml" title="Marco Yuen" href="http://yourdomain.com/feed.xml">
+</head>
+
+
+  <body>
+
+    
+<div class="wrapper">
+  <center><div class="site-title">Marco Yuen</div></center>
+</div>
+<div class="wrapper site-description">
+  <center>Life and Programming</center>
+</div>
+<div class="wrapper">
+  <div class="trigger site-navigation">
+    <center>
+      <a class="page-link" href="/index.html">HOME</a>
+      
+        
+          <span class="exclamationMark">/</span><a class="page-link" href="/about/">About</a>
+        
+      
+        
+      
+        
+      
+        
+          <span class="exclamationMark">/</span><a class="page-link" href="/resume/">Resume</a>
+        
+      
+        
+      
+    </center>
+  </div>
+</div>
+
+
+    <div class="page-content">
+      <div class="wrapper">
+        <article class="post" itemscope itemtype="http://schema.org/BlogPosting">
+
+  <header class="post-header">
+    <h1 class="post-title" itemprop="name headline"><a class="post-title-link"  href="/articles/2014/02/15/bitpub.html">Introducing bitpub</a></h1>
+  <center>  <p class="post-meta"><time datetime="2014-02-15T00:00:00-05:00" itemprop="datePublished">Feb 15, 2014</time></p>
+    
+   </center>
+  </header>
+
+  <div class="post-content" itemprop="articleBody">
+    <p><a href="https://github.com/marcoy/bitpub">Bitpub</a> was a project I started about two
+months ago. One of the main goals of the project is to build something that
+utilizes RabbitMQ. In essence, bitpub fetches Bitcoin ticker data from various
+sources, and publishes them to a RabbitMQ’s topic exchange. Please read the
+<a href="https://github.com/marcoy/bitpub/blob/master/README.md">README</a> of
+<a href="https://github.com/marcoy/bitpub">Bitpub</a> on how to run the publisher and
+consumer.</p>
+
+<h4 id="polling">Polling</h4>
+<p>The project uses <a href="https://github.com/clojure/core.async">core.async</a> to poll the
+sources for ticker data. The supported sources are <a href="https://campbx.com">CampBx</a>,
+<a href="https://www.bitstamp.net">Bitstamp</a>, <a href="http://vircurex.com">Vircurex</a>,
+<a href="https://btc-e.com">BTC-e</a>, and <a href="https://vip.btcchina.com">BTC China</a>. The logic
+of the polling, shown below, will poll a given ticker URL to <code class="highlighter-rouge">GET</code> the market
+data. It will place the data returned from the <code class="highlighter-rouge">GET</code> request into the <code class="highlighter-rouge">out</code>
+channel. If no process is consuming the <code class="highlighter-rouge">out</code> channel, it will wait for a
+specified time and poll the ticker URL again. This ensures the data that a
+consumer receives are kept somewhat up-to-date. There is a timeout for the
+initial <code class="highlighter-rouge">GET</code> request. If the <code class="highlighter-rouge">GET</code> request timeout has elapsed, it will retry
+again. All of these polling logics are performed inside a <code class="highlighter-rouge">go</code> block, which is
+similar to
+<a href="https://gobyexample.com/goroutines">goroutines</a> in <a href="http://golang.org/">Go</a>. As
+a result, the polling is done in a thread pool. So, multiple <em>feeds</em> can be
+constructed, and poll concurrently.</p>
+
+<figure class="highlight"><pre><code class="language-clojure" data-lang="clojure"><span class="p">(</span><span class="k">defn</span><span class="w"> </span><span class="n">create-ticker-feed</span><span class="w">
+  </span><span class="p">[</span><span class="n">ticker-url</span><span class="w"> </span><span class="o">&amp;</span><span class="w"> </span><span class="p">{</span><span class="no">:keys</span><span class="w"> </span><span class="p">[</span><span class="n">get-timeout</span><span class="w"> </span><span class="n">async-put-timeout</span><span class="w"> </span><span class="n">park-time-fn</span><span class="p">]</span><span class="w"> </span><span class="no">:as</span><span class="w"> </span><span class="n">params</span><span class="p">}]</span><span class="w">
+  </span><span class="p">(</span><span class="k">let</span><span class="w"> </span><span class="p">[</span><span class="n">out</span><span class="w"> </span><span class="p">(</span><span class="nf">chan</span><span class="p">)]</span><span class="w">
+    </span><span class="p">(</span><span class="nf">go-loop</span><span class="w"> </span><span class="p">[]</span><span class="w">
+      </span><span class="p">(</span><span class="k">let</span><span class="w"> </span><span class="p">[</span><span class="n">time-out</span><span class="w"> </span><span class="p">(</span><span class="nf">as/timeout</span><span class="w"> </span><span class="n">get-timeout</span><span class="p">)</span><span class="w">
+            </span><span class="n">ticker-poll</span><span class="w"> </span><span class="p">(</span><span class="nf">http-get</span><span class="w"> </span><span class="n">ticker-url</span><span class="p">)</span><span class="w">
+            </span><span class="p">[</span><span class="n">v</span><span class="w"> </span><span class="n">c</span><span class="p">]</span><span class="w"> </span><span class="p">(</span><span class="nf">alts!</span><span class="w"> </span><span class="p">[</span><span class="n">time-out</span><span class="w"> </span><span class="n">ticker-poll</span><span class="p">])]</span><span class="w">
+        </span><span class="p">(</span><span class="k">cond</span><span class="w">
+          </span><span class="p">(</span><span class="nb">=</span><span class="w"> </span><span class="n">c</span><span class="w"> </span><span class="n">ticker-poll</span><span class="p">)</span><span class="w"> </span><span class="p">(</span><span class="k">let</span><span class="w"> </span><span class="p">[[</span><span class="n">_</span><span class="w"> </span><span class="n">ch</span><span class="p">]</span><span class="w"> </span><span class="p">(</span><span class="nf">alts!</span><span class="w"> </span><span class="p">[[</span><span class="n">out</span><span class="w"> </span><span class="n">v</span><span class="p">]</span><span class="w"> </span><span class="p">(</span><span class="nf">as/timeout</span><span class="w"> </span><span class="n">async-put-timeout</span><span class="p">)])]</span><span class="w">
+                              </span><span class="c1">;; If no-one is consuming the out channel, polls
+</span><span class="w">                              </span><span class="c1">;; the url again after some time.
+</span><span class="w">                              </span><span class="p">(</span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="nb">=</span><span class="w"> </span><span class="n">ch</span><span class="w"> </span><span class="n">out</span><span class="p">)</span><span class="w">
+                                </span><span class="p">(</span><span class="nf">do</span><span class="w">
+                                  </span><span class="c1">;; park for a little bit before polling again
+</span><span class="w">                                  </span><span class="p">(</span><span class="nf">&lt;!</span><span class="w"> </span><span class="p">(</span><span class="nf">as/timeout</span><span class="w"> </span><span class="p">(</span><span class="nf">park-time-fn</span><span class="p">)))</span><span class="w">
+                                  </span><span class="p">(</span><span class="nf">recur</span><span class="p">))</span><span class="w">
+                                </span><span class="p">(</span><span class="nf">recur</span><span class="p">)))</span><span class="w">
+          </span><span class="c1">;; HTTP GET timeout
+</span><span class="w">          </span><span class="p">(</span><span class="nb">=</span><span class="w"> </span><span class="n">c</span><span class="w"> </span><span class="n">time-out</span><span class="p">)</span><span class="w"> </span><span class="p">(</span><span class="nf">do</span><span class="w"> </span><span class="p">(</span><span class="nf">close!</span><span class="w"> </span><span class="n">c</span><span class="p">)</span><span class="w">
+                             </span><span class="p">(</span><span class="nf">recur</span><span class="p">)))))</span><span class="w">
+    </span><span class="n">out</span><span class="p">))</span></code></pre></figure>
+
+<p>There are a few options for <code class="highlighter-rouge">create-ticket-feed</code> function. They are all related
+to timings, because different sources have different timing restrictions when
+polling. The timing restrictions are set in place, in order to prevent abuse. If
+the <code class="highlighter-rouge">go</code> block polls a source too frequently, it may get banned by the source.
+The options are:</p>
+
+<dl>
+  <dt><code class="highlighter-rouge">:get-timeout</code></dt>
+  <dd>The time it waits for a reply from the GET request before retrying (in ms).</dd>
+  <dt><code class="highlighter-rouge">:async-put-timeout</code></dt>
+  <dd>The time it waits for a consumer to consume the value (in ms).</dd>
+  <dt><code class="highlighter-rouge">:park-time-fn</code></dt>
+  <dd>A function that returns an integer (in ms). The integer will be used as the
+park time before the <code class="highlighter-rouge">go</code> block re-polls the ticker url again. This is dictated by the
+source’s timing restriction.</dd>
+</dl>
+
+<p>To create a feed from, say, <a href="https://campbx.com">CampBx</a>.</p>
+
+<figure class="highlight"><pre><code class="language-clojure" data-lang="clojure"><span class="p">(</span><span class="nf">create-ticker-feed</span><span class="w">
+  </span><span class="s">"http://campbx.com/api/xticker.php"</span><span class="w">
+  </span><span class="c1">;; GET request timed out after 30s
+</span><span class="w">  </span><span class="no">:get-timeout</span><span class="w"> </span><span class="mi">30000</span><span class="w">
+  </span><span class="c1">;; If no process is consuming the out channel, re-poll
+</span><span class="w">  </span><span class="no">:async-put-timeout</span><span class="w"> </span><span class="mi">10000</span><span class="w">
+  </span><span class="c1">;; Wait at least 1s between each poll
+</span><span class="w">  </span><span class="c1">;; rand-int is to introduce some variance
+</span><span class="w">  </span><span class="no">:park-time-fn</span><span class="w"> </span><span class="o">#</span><span class="p">(</span><span class="nb">+</span><span class="w"> </span><span class="mi">1000</span><span class="w"> </span><span class="p">(</span><span class="nb">rand-int</span><span class="w"> </span><span class="mi">1500</span><span class="p">)))</span></code></pre></figure>
+
+<h4 id="publishing-feeds">Publishing feeds</h4>
+<p>The return value for <code class="highlighter-rouge">create-ticker-feed</code> is a channel. From that channel, a
+consumer can acquire the market data and then perform whatever action it needs
+to perform. In the publisher’s case, whenever it receives any market data, it
+will publish the data out to a topic exchange of a RabbitMQ instance.  Actually,
+the publisher I implemented does a little bit more. All the data that it
+receives from the channel get passed through a function (using
+<a href="http://clojure.github.io/core.async/#clojure.core.async/map&lt;">mapv&lt;</a>). The
+function is used to clean up the market data. One example for such function is
+to transform all the string keys into Clojure <code class="highlighter-rouge">keywords</code>.</p>
+
+<h4 id="subscribing-to-feeds">Subscribing to feeds</h4>
+<p>As described earilier, the data will be published to a RabbitMQ’s topic
+exchange. Each feed will have the routing key of the form <code class="highlighter-rouge">ticker.$feedname</code>.
+So, to subscribe to the <a href="https://campbx.com">CampBx</a> feed, you will need to
+subscribe to <code class="highlighter-rouge">ticker.campbx</code>. Moreover, if you want to subscribe to all feeds,
+then you will need to subscribe to <code class="highlighter-rouge">ticker.#</code>.
+<a href="https://github.com/marcoy/bitpub">Bitpub</a> comes a basic consumer the subscribe
+to all feeds, and dump all the data out to <code class="highlighter-rouge">STDOUT</code>.</p>
+
+<h4 id="final-words">Final words</h4>
+<p>One of the other reasons why I started
+<a href="https://github.com/marcoy/bitpub">bitpub</a>, besides learning about RabbitMQ, was
+to build a notification system for Bitcoin prices at different exchanges. So,
+users can get notifications when the prices of Bitcoin rise above or fall below
+some thresholds defined by the users. Another usage of bitpub is to allow
+trading bot to get the market data and make decision on how to trade.</p>
+
+<p>Unfortunately, life and work get in the way, so I haven’t started on the rest of
+the components of the notification system. And, that’s why I haven’t written
+anything about <a href="https://github.com/marcoy/bitpub">bitpub</a> until months later.
+Anyway, try it and play around with it.</p>
+
+  </div>
+
+
+</article>
+
+      </div>
+    </div>
+
+    <footer class="site-footer">
+
+  <div class="wrapper">
+
+    <h2 class="footer-heading small-site-title">Marco Yuen</h2>
+
+    <div class="footer-col-wrapper">
+      <div class="footer-col footer-col-1">
+        <ul class="contact-list footer-content">
+          <li>Powered By <a href="http://github.com/hemangsk/Gravity">Gravity</a></li>
+          <li>Made with <i class="fa fa-heart"></i> on <a href="jekyll.com"><span style="color:black">{ { Jekyll } }</a></span></li>
+        </ul>
+      </div>
+
+      <div class="footer-col footer-col-2 footer-content">
+        <ul class="social-media-list">
+          
+          <li>
+            <a href="https://github.com/marcoy"><span class="fa fa-github-alt fa-lg fa-fw"></span><span class="username">marcoy</span></a>
+
+          </li>
+          
+
+          
+          <li>
+            <a href="https://www.linkedin.com/in/marcoyuen"><span class="fa fa-linkedin fa-lg fa-fw"></span><span class="username">marcoyuen</span></a>
+
+          </li>
+          
+
+          
+          <li>
+            <a href="https://twitter.com/marcoyyk"><span class="fa fa-twitter fa-lg fa-fw"></span><span class="username">marcoyyk</span></a>
+
+          </li>
+          
+        </ul>
+      </div>
+
+      <div class="footer-col footer-col-3 site-description">
+        <p>Life and Programming</p>
+      </div>
+    </div>
+
+  </div>
+
+</footer>
+
+
+  </body>
+
+</html>
