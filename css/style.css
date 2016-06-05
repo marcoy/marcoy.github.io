@@ -418,10 +418,11 @@ pre {
   margin-bottom: 30px; }
 
 .post-title {
-  font-size: 52px;
+  font-size: 42px;
+  color: #464646 !important;
   text-align: center;
   font-family: "PT Sans";
-  font-weight: 900; }
+  font-weight: 800; }
   @media screen and (max-width: 800px) {
     .post-title {
       font-size: 36px; } }
