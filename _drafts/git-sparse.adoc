@@ -1,0 +1,21 @@
+= Streamlining Git Sparse Checkout
+:page-layout: post
+:page-categories: articles
+:page-tags: git, haskell
+
+:svn-wiki: https://en.wikipedia.org/wiki/Apache_Subversion[Subversion]
+
+== Sparse What?
+Sparse checkout is probably not a well used feature in git.
+In a nutshell, the feature allows one to checkout only certain subdirecties in a git repository.
+For the most part, I don't envision people use this feature much.
+The only reason why I use the git sparse checkout feature is because of work.
+
+At work, we use {svn-wiki} as the VCS (imagine my horror)footnote:[SVN is not a right tool when coupled with our development culture].
+The SVN repository layout follows the standard recommended layout (e.g. `trunk`, `branches`, and `tags`).
+There are upwards of 30+ codebases under `trunk`, and most of the time I only have to work with a handful
+of the codebases.
+Since it has been a long time since I use Subversion, I decided to use `git svn` rather than vanilla
+Subversion.
+
+== Normal Sparse Checkout Workflow
