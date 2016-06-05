@@ -1,5 +1,6 @@
 = Some Updates
 :page-layout: post
+:page-categories: articles
 
 I have been on hiatus for more than two years now.
 So I have decided to update the site's layout and add some new content.
