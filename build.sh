@@ -13,7 +13,7 @@ set -e
 # cleanup
 rm -rf "$BUILD_OUTPUT"
 
-git clone -b jekyll-staging https://${GH_TOKEN}@github.com/marcoy/marcoy.github.io.git "$BUILD_OUTPUT"
+git clone https://${GH_TOKEN}@github.com/marcoy/marcoy.github.io.git "$BUILD_OUTPUT"
 
 # Clear out the content of ${BUILD_OUTPUT}
 rm -rf "${BUILD_OUTPUT}/*"
@@ -26,4 +26,4 @@ git add -A .
 git config user.email "marcoy@gmail.com"
 git config user.name "Marco Yuen"
 git commit -a -m "Travis #$TRAVIS_BUILD_NUMBER"
-git push --quiet origin jekyll-staging > /dev/null 2>&1
+git push --quiet origin master > /dev/null 2>&1
