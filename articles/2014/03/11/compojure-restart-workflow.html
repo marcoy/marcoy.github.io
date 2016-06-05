@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html>
+
+  <head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <title>Compojure restart workflow</title>
+  <meta name="description" content="Recently I’ve been reading the excellent Web Development withClojure. As I’mfollowing along, I found myself constantly restarting the REPL because of eithera...">
+  <link href='https://fonts.googleapis.com/css?family=PT+Sans:400,700,400italic,700italic' rel='stylesheet' type='text/css'>
+  <link href='https://fonts.googleapis.com/css?family=Source+Sans+Pro:400,700,200,300' rel='stylesheet' type='text/css'>
+  <link href='https://fonts.googleapis.com/css?family=Josefin+Sans:400,600,700,300' rel='stylesheet' type='text/css'>
+
+  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.6.3/css/font-awesome.min.css">
+  <link rel="stylesheet" href="/css/style.css">
+  <link rel="stylesheet" href="/css/asciidoctor.css">
+  <link rel="canonical" href="http://www.marcoyuen.com/articles/2014/03/11/compojure-restart-workflow.html">
+  <link rel="alternate" type="application/rss+xml" title="Marco Yuen" href="http://www.marcoyuen.com/feed.xml">
+</head>
+
+
+  <body>
+
+    
+<div class="wrapper">
+  <center><div class="site-title">Marco Yuen</div></center>
+</div>
+<div class="wrapper site-description">
+  <center>Life and Programming</center>
+</div>
+<div class="wrapper">
+  <div class="trigger site-navigation">
+    <center>
+      <a class="page-link" href="/index.html">HOME</a>
+      
+        
+          <span class="exclamationMark">/</span><a class="page-link" href="/about/">About</a>
+        
+      
+        
+      
+        
+      
+        
+          <span class="exclamationMark">/</span><a class="page-link" href="/resume/">Resume</a>
+        
+      
+        
+      
+    </center>
+  </div>
+</div>
+
+
+    <div class="page-content">
+      <div class="wrapper">
+        <article class="post" itemscope itemtype="http://schema.org/BlogPosting">
+  <header class="post-header">
+    <h1 class="post-title" itemprop="name headline">Compojure restart workflow</h1>
+    <center>
+      <p class="post-meta">
+        <time datetime="2014-03-11T00:00:00-04:00" itemprop="datePublished">Mar 11, 2014</time>
+      </p>
+      
+    </center>
+  </header>
+
+  <div class="post-content" itemprop="articleBody">
+    <p>Recently I’ve been reading the excellent <a href="http://pragprog.com/book/dswdcloj/web-development-with-clojure">Web Development with
+Clojure</a>. As I’m
+following along, I found myself constantly restarting the REPL because of either
+a new module or a new function is introduced. The time it takes for the REPL to
+restart is long enough that it breaks my
+<a href="http://en.wikipedia.org/wiki/Flow\_(psychology)">flow</a>. I don’t know why the
+REPL restart time did not bother me as much when I was working on my recent
+projects, <a href="">Shows</a> and <a href="/articles/2014/02/15/bitpub.html">Bitpub</a>.</p>
+
+<p>In any case, a tight feedback loop is essential to REPL-driven development. I
+understand there is a famous
+<a href="http://thinkrelevance.com/blog/2013/06/04/clojure-workflow-reloaded">blog</a> post
+by <a href="http://stuartsierra.com/">Stuart Sierra</a> regarding his workflow, and a
+<a href="https://github.com/zcaudate/vinyasa">few</a> <a href="https://github.com/juxt/jig">other</a>
+<a href="https://github.com/stuartsierra/component">projects</a> that help with Clojure
+workflow. Ultimately, I decided to use Stuart’s idea and
+<a href="https://github.com/clojure/tools.namespace">tools.namespace</a> to create a quick
+and dirty solution that helps me as I follow along the book.</p>
+
+<p>Following Stuart’s idea, I have a constructor for the app. It returns a map,
+that contains an atom which then holds an instance of the application server,
+jetty. But notice that it is private.</p>
+
+<figure class="highlight"><pre><code class="language-clojure" data-lang="clojure"><span class="p">(</span><span class="k">defn-</span><span class="w"> </span><span class="n">create-app</span><span class="w"> </span><span class="p">[]</span><span class="w">
+  </span><span class="p">{</span><span class="no">:server</span><span class="w"> </span><span class="p">(</span><span class="nf">atom</span><span class="w"> </span><span class="n">nil</span><span class="p">)})</span></code></pre></figure>
+
+<p>The way to start the app is to use the <code class="highlighter-rouge">start</code> function. One way I make it more
+convenient for myself, but less portable is the use of <code class="highlighter-rouge">intern</code>. I use <code class="highlighter-rouge">intern</code>
+to create a <code class="highlighter-rouge">Var</code> in the <code class="highlighter-rouge">user</code> namespace called <code class="highlighter-rouge">app</code>. The value of the
+<code class="highlighter-rouge">user/app</code> is the return value of <code class="highlighter-rouge">create-app</code>, the constructor.</p>
+
+<figure class="highlight"><pre><code class="language-clojure" data-lang="clojure"><span class="p">(</span><span class="k">defn</span><span class="w"> </span><span class="n">start</span><span class="w"> </span><span class="p">[</span><span class="o">&amp;</span><span class="w"> </span><span class="p">[</span><span class="n">port</span><span class="p">]]</span><span class="w">
+  </span><span class="p">(</span><span class="k">let</span><span class="w"> </span><span class="p">[</span><span class="n">app</span><span class="w"> </span><span class="p">(</span><span class="nb">var-get</span><span class="w"> </span><span class="p">(</span><span class="nf">intern</span><span class="w"> </span><span class="ss">'user</span><span class="w"> </span><span class="ss">'app</span><span class="w"> </span><span class="p">(</span><span class="nf">create-app</span><span class="p">)))</span><span class="w">
+        </span><span class="n">port</span><span class="w"> </span><span class="p">(</span><span class="k">if</span><span class="w"> </span><span class="n">port</span><span class="w"> </span><span class="p">(</span><span class="nf">Integer/parseInt</span><span class="w"> </span><span class="n">port</span><span class="p">)</span><span class="w"> </span><span class="mi">8080</span><span class="p">)]</span><span class="w">
+    </span><span class="p">(</span><span class="nf">reset!</span><span class="w"> </span><span class="p">(</span><span class="no">:server</span><span class="w"> </span><span class="n">app</span><span class="p">)</span><span class="w">
+            </span><span class="p">(</span><span class="nf">serve</span><span class="w"> </span><span class="p">(</span><span class="nf">get-handler</span><span class="p">)</span><span class="w">
+                   </span><span class="p">{</span><span class="no">:port</span><span class="w"> </span><span class="n">port</span><span class="w">
+                    </span><span class="no">:init</span><span class="w"> </span><span class="n">init</span><span class="w">
+                    </span><span class="no">:auto-reload?</span><span class="w"> </span><span class="n">true</span><span class="w">
+                    </span><span class="no">:destroy</span><span class="w"> </span><span class="n">destroy</span><span class="w">
+                    </span><span class="no">:join</span><span class="w"> </span><span class="n">true</span><span class="p">}))</span><span class="w">
+      </span><span class="p">(</span><span class="nb">println</span><span class="w"> </span><span class="p">(</span><span class="nb">str</span><span class="w"> </span><span class="s">"You can view the site at http://localhost:"</span><span class="w"> </span><span class="n">port</span><span class="p">))))</span></code></pre></figure>
+
+<p>Reloading is very similar to how it is described in the
+<a href="https://github.com/clojure/tools.namespace#warnings-for-helper-functions">README</a>
+of <a href="https://github.com/clojure/tools.namespace">tools.namespace</a>. Everytime
+<code class="highlighter-rouge">restart</code> is called, it will stop the current application server, refresh all
+the namespaces that are changed and start a new application server.
+one</p>
+
+<figure class="highlight"><pre><code class="language-clojure" data-lang="clojure"><span class="p">(</span><span class="k">defn</span><span class="w"> </span><span class="n">restart</span><span class="w"> </span><span class="p">[</span><span class="n">app</span><span class="p">]</span><span class="w">
+  </span><span class="p">(</span><span class="nf">stop</span><span class="w"> </span><span class="n">app</span><span class="p">)</span><span class="w">
+  </span><span class="c1">;; gallery.repl is the module where
+</span><span class="w">  </span><span class="c1">;; start and restart are defined
+</span><span class="w">  </span><span class="p">(</span><span class="nf">refresh</span><span class="w"> </span><span class="no">:after</span><span class="w"> </span><span class="ss">'gallery.repl/start</span><span class="p">))</span></code></pre></figure>
+
+<p>Now my work flow becomes quite compact and fast. No more restarting the REPL.
+Plus, I can experiment in the REPL against the running application.</p>
+
+<figure class="highlight"><pre><code class="language-clojure" data-lang="clojure"><span class="n">user=&gt;</span><span class="w"> </span><span class="p">(</span><span class="nf">start</span><span class="p">)</span><span class="w">
+</span><span class="c1">;; editing...
+;; The start function intern's app into the user namespace.
+;; So, I can pass it into restart.
+</span><span class="n">user=&gt;</span><span class="w"> </span><span class="p">(</span><span class="nf">restart</span><span class="w"> </span><span class="n">app</span><span class="p">)</span><span class="w">
+</span><span class="c1">;; more editing...
+</span><span class="n">user=&gt;</span><span class="w"> </span><span class="p">(</span><span class="nf">restart</span><span class="w"> </span><span class="n">app</span><span class="p">)</span></code></pre></figure>
+
+<p>There are quite a few drawbacks to my approach, but, so far, it works quite well
+for my use case. If you are developing a proper application from scratch, I
+would suggest using either
+<a href="https://github.com/stuartsierra/component">compojure</a>, or
+<a href="https://github.com/juxt/jig">jig</a>.</p>
+
+  </div>
+</article>
+
+      </div>
+    </div>
+
+    <footer class="site-footer">
+
+  <div class="wrapper">
+
+    <h2 class="footer-heading small-site-title">Marco Yuen</h2>
+
+    <div class="footer-col-wrapper">
+      <div class="footer-col footer-col-1">
+        <ul class="contact-list footer-content">
+          <li>Powered By <a href="http://github.com/hemangsk/Gravity">Gravity</a></li>
+          <li>Made with <i class="fa fa-heart"></i> on <a href="jekyll.com"><span style="color:black">{ { Jekyll } }</a></span></li>
+        </ul>
+      </div>
+
+      <div class="footer-col footer-col-2 footer-content">
+        <ul class="social-media-list">
+          
+          <li>
+            <a href="https://github.com/marcoy"><span class="fa fa-github-alt fa-lg fa-fw"></span><span class="username">marcoy</span></a>
+
+          </li>
+          
+
+          
+          <li>
+            <a href="https://www.linkedin.com/in/marcoyuen"><span class="fa fa-linkedin fa-lg fa-fw"></span><span class="username">marcoyuen</span></a>
+
+          </li>
+          
+
+          
+          <li>
+            <a href="https://twitter.com/marcoyyk"><span class="fa fa-twitter fa-lg fa-fw"></span><span class="username">marcoyyk</span></a>
+
+          </li>
+          
+        </ul>
+      </div>
+
+      <div class="footer-col footer-col-3 site-description">
+        <p>Life and Programming</p>
+      </div>
+    </div>
+
+  </div>
+
+</footer>
+
+
+  </body>
+
+</html>

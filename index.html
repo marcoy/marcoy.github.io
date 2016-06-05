@@ -1,114 +1,251 @@
----
-layout: page
-title: (def home)
-tagline:
----
+<!DOCTYPE html>
+<html>
 
-<div class="intro">
-  <p class="lead">
-    I'm working as a Software Engineer at an
-    <a href="http://dstillery.com/">Ad Tech</a> company in New York. I, once,
-    worked as a research staff at <a href="http://planet-lab.org">PlanetLab</a>
-    at Princeton University.
-    Check out my <a href="http://s3.amazonaws.com/marcoy_resume/resume.pdf">CV</a>.
-  </p>
+  <head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
 
-  <p>
-    I graduated from
-    <a href="http://csc.uvic.ca/" target="_blank">University of Victoria</a>
-    with a Master's degree in Computer Science. The
-    <a href="http://s3.amazonaws.com/marcoy_thesis/Thesis.pdf">thesis</a> is available
-    online.
-  </p>
-  <p>
-    My current interests are cloud computing and functional programming
-    (<a href="http://www.clojure.org">Clojure</a>, and
-    <a href="http://www.haskell.org/">Haskell</a>), but I am also interested in
-    distributed systems, programming languages/paradigms (Functional,
-    Aspect-Oriented) and compiler construction.
-  </p>
+  <title>Marco Yuen</title>
+  <meta name="description" content="Life and Programming">
+  <link href='https://fonts.googleapis.com/css?family=PT+Sans:400,700,400italic,700italic' rel='stylesheet' type='text/css'>
+  <link href='https://fonts.googleapis.com/css?family=Source+Sans+Pro:400,700,200,300' rel='stylesheet' type='text/css'>
+  <link href='https://fonts.googleapis.com/css?family=Josefin+Sans:400,600,700,300' rel='stylesheet' type='text/css'>
+
+  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.6.3/css/font-awesome.min.css">
+  <link rel="stylesheet" href="/css/style.css">
+  <link rel="stylesheet" href="/css/asciidoctor.css">
+  <link rel="canonical" href="http://www.marcoyuen.com/">
+  <link rel="alternate" type="application/rss+xml" title="Marco Yuen" href="http://www.marcoyuen.com/feed.xml">
+</head>
+
+
+  <body>
+
+    
+<div class="wrapper">
+  <center><div class="site-title">Marco Yuen</div></center>
+</div>
+<div class="wrapper site-description">
+  <center>Life and Programming</center>
+</div>
+<div class="wrapper">
+  <div class="trigger site-navigation">
+    <center>
+      <a class="page-link" href="/index.html">HOME</a>
+      
+        
+          <span class="exclamationMark">/</span><a class="page-link" href="/about/">About</a>
+        
+      
+        
+      
+        
+      
+        
+          <span class="exclamationMark">/</span><a class="page-link" href="/resume/">Resume</a>
+        
+      
+        
+      
+    </center>
+  </div>
 </div>
 
-<hr/>
 
-<h3>Posts</h3>
-<ul class="posts list-unstyled">
-  {% for post in site.posts %}
-  <li>{{ post.date | date_to_string }} &raquo;
-      <a href="{{ site.baseurl }}{{ post.url }}">{{ post.title }}</a>
-  </li>
-  {% endfor %}
-</ul>
+    <div class="page-content">
+      <div class="wrapper">
+        <div class="home">
 
-{% comment %}
-{% for post in paginator.posts %}
-  <article class="home">
-
-    <span class="post-date">
-      {% assign d = post.date | date: "%d" | plus:'0' %}
-      {{ post.date | date: "%B" }}
-      {% case d %}
-        {% when 1 or 21 or 31 %}{{ d }}st,
-        {% when 2 or 22 %}{{ d }}nd,
-        {% when 3 or 23 %}{{ d }}rd,
-        {% else %}{{ d }}th,
-      {% endcase %}
-      {{ post.date | date: "%Y" }}
-    </span>
-
-    <h3>
-      <a href="{{ site.baseurl }}{{ post.url }}">{{ post.title }}</a>
-    </h3>
-
-    <div>
-      {% if post.fullview %}
-        {{ post.content }}
-      {% else %}
-        {% if post.shortinfo %}
-          {{ post.shortinfo }}
-        {% elsif post.description %}
-          {{ post.description }}
-        {% else %}
-          {{ post.excerpt }}
-        {% endif %}
-      {% endif %}
+  
+  <div class="post postContent">
+    <div  class="postDate">
+      <time datetime="2014-03-11T00:00:00-04:00" itemprop="datePublished">Mar 11, 2014</time>
+    </div>
+    <div class="postDay">
+      
     </div>
 
-  </article>
-{% endfor %}
-{% endcomment %}
+    <br />
+
+    <div class="postTitle">
+      <a class='postLink' href="/articles/2014/03/11/compojure-restart-workflow.html">Compojure restart workflow</a>
+    </div>
+    <div class="postExt">
+      Recently I’ve been reading the excellent Web Development with Clojure. As I’m following along, I found myself constantly restarting the...
+    </div>
+  </div>
+  
+  <div class="post postContent">
+    <div  class="postDate">
+      <time datetime="2014-02-15T00:00:00-05:00" itemprop="datePublished">Feb 15, 2014</time>
+    </div>
+    <div class="postDay">
+      
+    </div>
+
+    <br />
+
+    <div class="postTitle">
+      <a class='postLink' href="/articles/2014/02/15/bitpub.html">Introducing bitpub</a>
+    </div>
+    <div class="postExt">
+      Bitpub was a project I started about two months ago. One of the main goals of the project is to...
+    </div>
+  </div>
+  
+  <div class="post postContent">
+    <div  class="postDate">
+      <time datetime="2014-02-08T00:00:00-05:00" itemprop="datePublished">Feb 08, 2014</time>
+    </div>
+    <div class="postDay">
+      
+    </div>
+
+    <br />
+
+    <div class="postTitle">
+      <a class='postLink' href="/articles/2014/02/08/nqueens.html">Eight-Queens Puzzle</a>
+    </div>
+    <div class="postExt">
+      The eight queens puzzle is about placing eight queens on a 8x8 chess board such that none of the queens...
+    </div>
+  </div>
+  
+  <div class="post postContent">
+    <div  class="postDate">
+      <time datetime="2014-02-01T00:00:00-05:00" itemprop="datePublished">Feb 01, 2014</time>
+    </div>
+    <div class="postDay">
+      
+    </div>
+
+    <br />
+
+    <div class="postTitle">
+      <a class='postLink' href="/articles/2014/02/01/merkle-tree.html">Merkle Tree</a>
+    </div>
+    <div class="postExt">
+      Merkle Tree is a tree where the leaf nodes contain the hashes of some data blocks, and the internal nodes...
+    </div>
+  </div>
+  
+  <div class="post postContent">
+    <div  class="postDate">
+      <time datetime="2014-01-26T00:00:00-05:00" itemprop="datePublished">Jan 26, 2014</time>
+    </div>
+    <div class="postDay">
+      
+    </div>
+
+    <br />
+
+    <div class="postTitle">
+      <a class='postLink' href="/general/2014/01/26/first-post.html">Hello Jekyll. Bye Tumblr.</a>
+    </div>
+    <div class="postExt">
+      After a year or so of neglect, I finally decided to rebuild my own web site. This time around, the...
+    </div>
+  </div>
+  
+
+  <!--<ul class="post-list">
+    
+      <li>
+        <span class="post-meta-main">Mar 11, 2014</span>
+
+        <h2>
+          <a class="post-link-main" href="/articles/2014/03/11/compojure-restart-workflow.html">Compojure restart workflow</a>
+        </h2>
+      </li>
+    
+      <li>
+        <span class="post-meta-main">Feb 15, 2014</span>
+
+        <h2>
+          <a class="post-link-main" href="/articles/2014/02/15/bitpub.html">Introducing bitpub</a>
+        </h2>
+      </li>
+    
+      <li>
+        <span class="post-meta-main">Feb 8, 2014</span>
+
+        <h2>
+          <a class="post-link-main" href="/articles/2014/02/08/nqueens.html">Eight-Queens Puzzle</a>
+        </h2>
+      </li>
+    
+      <li>
+        <span class="post-meta-main">Feb 1, 2014</span>
+
+        <h2>
+          <a class="post-link-main" href="/articles/2014/02/01/merkle-tree.html">Merkle Tree</a>
+        </h2>
+      </li>
+    
+      <li>
+        <span class="post-meta-main">Jan 26, 2014</span>
+
+        <h2>
+          <a class="post-link-main" href="/general/2014/01/26/first-post.html">Hello Jekyll. Bye Tumblr.</a>
+        </h2>
+      </li>
+    
+  </ul>-->
+</div>
+
+      </div>
+    </div>
+
+    <footer class="site-footer">
+
+  <div class="wrapper">
+
+    <h2 class="footer-heading small-site-title">Marco Yuen</h2>
+
+    <div class="footer-col-wrapper">
+      <div class="footer-col footer-col-1">
+        <ul class="contact-list footer-content">
+          <li>Powered By <a href="http://github.com/hemangsk/Gravity">Gravity</a></li>
+          <li>Made with <i class="fa fa-heart"></i> on <a href="jekyll.com"><span style="color:black">{ { Jekyll } }</a></span></li>
+        </ul>
+      </div>
+
+      <div class="footer-col footer-col-2 footer-content">
+        <ul class="social-media-list">
+          
+          <li>
+            <a href="https://github.com/marcoy"><span class="fa fa-github-alt fa-lg fa-fw"></span><span class="username">marcoy</span></a>
+
+          </li>
+          
+
+          
+          <li>
+            <a href="https://www.linkedin.com/in/marcoyuen"><span class="fa fa-linkedin fa-lg fa-fw"></span><span class="username">marcoyuen</span></a>
+
+          </li>
+          
+
+          
+          <li>
+            <a href="https://twitter.com/marcoyyk"><span class="fa fa-twitter fa-lg fa-fw"></span><span class="username">marcoyyk</span></a>
+
+          </li>
+          
+        </ul>
+      </div>
+
+      <div class="footer-col footer-col-3 site-description">
+        <p>Life and Programming</p>
+      </div>
+    </div>
+
+  </div>
+
+</footer>
 
 
-{% comment %}
-<ul class="pager">
+  </body>
 
-  {% if paginator.previous_page %}
-    <li class="previous">
-      {% if paginator.previous_page == 1 %}
-        <a href="{{ site.baseurl }}/">&larr; Newer</a>
-      {% else %}
-        <a href="{{ site.baseurl }}/page{{ paginator.previous_page }}">&larr; Newer</a>
-      {% endif %}
-    </li>
-  {% else %}
-    <li class="previous disabled">
-      <a>&larr; Newer</a>
-    </li>
-  {% endif %}
-
-  <li>
-          <span class="page_number">Page: {{ paginator.page }} of {{ paginator.total_pages }}</span>
-  </li>
-
-  {% if paginator.next_page %}
-    <li class="next">
-            <a href="{{ site.baseurl }}/page{{ paginator.next_page }}">Older &rarr;</a>
-    </li>
-  {% else %}
-    <li class="next disabled">
-            <a>Older &rarr;</a>
-    </li>
-  {% endif %}
-
-</ul>
-{% endcomment %}
+</html>
