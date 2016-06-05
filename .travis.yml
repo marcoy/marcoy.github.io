@@ -1,11 +1,11 @@
-sudo: false
 language: ruby
 script: "./build.sh"
+install: gem install jekyll asciidoctor jekyll-asciidoc jekyll-paginate pygments.rb
 branches:
   only:
     - jekyll-gravity
 rvm:
-  - 2.2.3
+  - 2.3.1
 env:
   global:
     secure: pjGtToWQ16zgBpIedq2DF1/ND+U/2iTfhIDYwPP9R1mEtkPPQOXRX4q4FHNXjWFPf0bR4O4fSZGWXx6pc6qBTCuRdT0d0E5QJjZv9hRRtoYIB+2lHyLrDeVJthcHly8q5tDRpyh7/6hcL91LCP3oYmuV9pn/ViqyFOJB3XakjcV6TWkDdsCeOqfJmc2SUj4eKwF75ERGnFXJ9yk1aj+PByfneXnAklmj4Fi0bVAIIBx4h+SldNiTe4PXIaRo/N83xGyOk7cBPeerbfc5eJWx9/8TxSOqnevaV4aIRFfkMSUkS4n5O3WvVAFfdgQR2saAX6NDrckYlTjWCtsn2n5jZy6xkxF2cDl2ZlE9449Ka56QSBnsUZhnPFu2rln0ipov2ai0hd52NwfybSBau9ZgnpjR/+Fo8SkIJZbH8/1QDc1tu//yjnobd8oCD2yYfv0ynCVIQ5CQsjW6x7/aqy5oOEGA4QMoey0+kxNnphsFZkqZjiPQ54gJ9DY9JQWLuFm/I+ghtb/AHF+dqugr5KB1WnNMuQC1LCu+prpHwSelW6sOfZebkZhLnpTEE7PcjdTwN+aFsTi3N0iEbKf2umBLDXe48c4/Bixhc3mPeeZt0QZMuwyL2dRmLy8QkuFEmxjr8IW3ofEzVFF1u2f212NfjPUMipMhWTvEIXl8l6eOVs0=
