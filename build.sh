@@ -22,11 +22,13 @@ rm -rf "${BUILD_OUTPUT}/*"
 # cp -R _site/* ../marcoy.github.io.master
 
 # build site with `jekyll', by default to `_site' folder
-jekyll build -d "$BUILD_OUTPUT"
+jekyll build -V -d "$BUILD_OUTPUT"
 
 # commit and push generated content to `master' branch
 # since repository was cloned in write mode with token auth - we can push there
 cd "$BUILD_OUTPUT"
 git add -A .
-git commit --author='Marco Yuen <marcoy@gmail.com>' -a -m "Travis #$TRAVIS_BUILD_NUMBER"
+git config user.email "marcoy@gmail.com"
+git config user.name "Marco Yuen"
+git commit -a -m "Travis #$TRAVIS_BUILD_NUMBER"
 git push --quiet origin jekyll-staging > /dev/null 2>&1
