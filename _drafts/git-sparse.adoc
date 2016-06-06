@@ -4,14 +4,17 @@
 :page-tags: git, haskell
 
 :svn-wiki: https://en.wikipedia.org/wiki/Apache_Subversion[Subversion]
+:worktree-doc: https://git-scm.com/docs/git-worktree[git worktree]
+:gitsparse: git-sparse
 
 == Sparse What?
 Sparse checkout is probably not a well used feature in git.
-In a nutshell, the feature allows one to checkout only certain subdirecties in a git repository.
+In a nutshell, the feature allows one to checkout only certain subdirectories in a git repository.
 For the most part, I don't envision people use this feature much.
 The only reason why I use the git sparse checkout feature is because of work.
 
-At work, we use {svn-wiki} as the VCS (imagine my horror)footnote:[SVN is not a right tool when coupled with our development culture].
+At work, we use {svn-wiki} as the VCS (imagine my horror)footnote:[SVN is not a right tool when coupled with
+the company development culture].
 The SVN repository layout follows the standard recommended layout (e.g. `trunk`, `branches`, and `tags`).
 There are upwards of 30+ codebases under `trunk`, and most of the time I only have to work with a handful
 of the codebases.
@@ -19,3 +22,59 @@ Since it has been a long time since I use Subversion, I decided to use `git svn`
 Subversion.
 
 == Normal Sparse Checkout Workflow
+The sparse checkout feature is not enabled by default, one needs to enable it first.
+So use the following the command to enable sparse checkout
+
+[source,sh]
+----
+>$ git config core.sparsecheckout true # <1>
+----
+<1> Only enable sparse checkout in the current git repository
+
+Once it is enabled, create a file called `sparse-checkout` in `$GITDIR/info`.
+For the most part, `$GITDIR` is `.git`, but that is not always the case especially if one uses the
+{worktree-doc} feature.
+The content of the `sparse-checkout` file is where one specifies the subdirectories to checkout in the working
+tree.
+Then, use the following command to update the working tree, or get rid of the subdirectories you do not want.
+
+[source,sh]
+----
+>$ git read-tree -mu HEAD
+----
+
+[[sparse-checkout-steps]]
+To summarize the steps:
+
+1. Enable git sparse out
+2. Create a file, `sparse-checkout`, inside `$GITDIR`
+3. Edit and specify the subdirectories in `sparse-checkout`
+4. Run `read-tree` to update the working tree
+
+As you can see the workflow is quite clunky.
+Especially, when I want to checkout a new subdirectory or un-checkout one of the subdirectories in my current
+working tree.
+I need to navigate to `$GITDIR/info/sparse-checkout` and edit its content.
+That is quite inconvenient because I use {worktree-doc} a lot, and the `$GITDIR` is somewhere else altogether.
+
+== Streamlining the Workflow
+As outlined <<sparse-checkout-steps, above>>, getting sparse checkout working is clunky but very mechanical.
+As most developers do when facing mundane tasks, I decide to automate the steps.
+I create a custom git command to make my life easier.
+
+[NOTE]
+====
+Creating a custom git command is very simple.
+Place an executable with name git-_<command>_ in your `$PATH`.
+====
+
+The custom command I created is called `git-sparse`,
+it performs <<sparse-checkout-steps,steps 1-3>> outlined in the previous section.
+
+Using `git-sparse` is simple.
+Navigate to the git repository, then run `git sparse` in the terminal.
+The first thing it does is to turn on sparse checkout feature,
+then use git to determine the correct location of `$GITDIR`,
+so `git-sparse` works with {worktree-doc}.
+Finally, it opens up an editor, so you can immediately start editing the `sparse-checkout` file.
+The final step which `git-sparse` does not do for you is running the `read-tree` command.

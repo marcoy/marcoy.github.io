@@ -6,7 +6,8 @@ url: "http://www.marcoyuen.com" # the base hostname & protocol for your site
 
 # Social media
 twitter_username: marcoyyk
-github_username:  marcoy
+github_username: marcoy
+gitlab_username: marcoy
 linkedin_username: marcoyuen
 
 # Build settings
