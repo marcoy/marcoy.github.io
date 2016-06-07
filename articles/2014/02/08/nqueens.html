@@ -70,10 +70,10 @@
     <p>The eight queens puzzle is about placing eight queens on a 8x8 chess board such
 that none of the queens share the same row, column, and diagonal. In fact there
 are more than one ways to place eight queens on a chess board without violating
-the rule. The puzzle can be generalized into a <code class="highlighter-rouge">n</code>-queens puzzle where the player
-is tasked to place <code class="highlighter-rouge">n</code> queens on a <code class="highlighter-rouge">n</code>x<code class="highlighter-rouge">n</code> chess board.</p>
+the rule. The puzzle can be generalized into a <code>n</code>-queens puzzle where the player
+is tasked to place <code>n</code> queens on a <code>n</code>x<code>n</code> chess board.</p>
 
-<p>This post is about my attempt to solve the <code class="highlighter-rouge">n</code>-queens puzzle using
+<p>This post is about my attempt to solve the <code>n</code>-queens puzzle using
 <a href="http://clojure.org/">Clojure</a>. The classic approach to solve the puzzle is to
 use a technique called backtracking. In backtracking, the entire solution space
 for the puzzle is searched until all or some of the solutions are found. In The
@@ -86,72 +86,72 @@ context of eight-queens puzzle, the algorithm will place one queen at a time
 until all eight queens are placed. Each newly placed queen will satisfy the rule
 of the puzzle—no two queens share the same row, column, and diagonal.</p>
 
-<figure class="highlight"><pre><code class="language-clojure" data-lang="clojure"><span class="p">(</span><span class="k">defn</span><span class="w"> </span><span class="n">backtrack</span><span class="w"> </span><span class="p">[</span><span class="n">n</span><span class="w"> </span><span class="n">partial-soln</span><span class="p">]</span><span class="w">
-  </span><span class="p">(</span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="nb">=</span><span class="w"> </span><span class="p">(</span><span class="nb">count</span><span class="w"> </span><span class="n">partial-soln</span><span class="p">)</span><span class="w"> </span><span class="n">n</span><span class="p">)</span><span class="w">
-    </span><span class="p">[</span><span class="n">partial-soln</span><span class="p">]</span><span class="w">
-    </span><span class="p">(</span><span class="k">let</span><span class="w"> </span><span class="p">[</span><span class="n">candidates</span><span class="w"> </span><span class="p">(</span><span class="nf">gen-candidates</span><span class="w"> </span><span class="n">n</span><span class="w"> </span><span class="n">partial-soln</span><span class="p">)]</span><span class="w">
-      </span><span class="p">(</span><span class="nb">mapcat</span><span class="w"> </span><span class="o">#</span><span class="p">(</span><span class="nf">backtrack</span><span class="w"> </span><span class="n">n</span><span class="w"> </span><span class="p">(</span><span class="nb">conj</span><span class="w"> </span><span class="n">partial-soln</span><span class="w"> </span><span class="n">%</span><span class="p">))</span><span class="w"> </span><span class="n">candidates</span><span class="p">))))</span><span class="w">
+<figure class="highlight"><pre><code class="language-clojure" data-lang="clojure"><a name="line-1"></a><span class="p">(</span><span class="kd">defn </span><span class="nv">backtrack</span> <span class="p">[</span><span class="nv">n</span> <span class="nv">partial-soln</span><span class="p">]</span>
+<a name="line-2"></a>  <span class="p">(</span><span class="k">if </span><span class="p">(</span><span class="nb">= </span><span class="p">(</span><span class="nb">count </span><span class="nv">partial-soln</span><span class="p">)</span> <span class="nv">n</span><span class="p">)</span>
+<a name="line-3"></a>    <span class="p">[</span><span class="nv">partial-soln</span><span class="p">]</span>
+<a name="line-4"></a>    <span class="p">(</span><span class="k">let </span><span class="p">[</span><span class="nv">candidates</span> <span class="p">(</span><span class="nf">gen-candidates</span> <span class="nv">n</span> <span class="nv">partial-soln</span><span class="p">)]</span>
+<a name="line-5"></a>      <span class="p">(</span><span class="nb">mapcat </span><span class="o">#</span><span class="p">(</span><span class="nf">backtrack</span> <span class="nv">n</span> <span class="p">(</span><span class="nb">conj </span><span class="nv">partial-soln</span> <span class="nv">%</span><span class="p">))</span> <span class="nv">candidates</span><span class="p">))))</span>
+<a name="line-6"></a>
+<a name="line-7"></a><span class="p">(</span><span class="kd">defn </span><span class="nv">n-queens</span> <span class="p">[</span><span class="nv">n</span><span class="p">]</span>
+<a name="line-8"></a>  <span class="p">(</span><span class="nf">backtrack</span> <span class="nv">n</span> <span class="p">[]))</span></code></pre></figure>
 
-</span><span class="p">(</span><span class="k">defn</span><span class="w"> </span><span class="n">n-queens</span><span class="w"> </span><span class="p">[</span><span class="n">n</span><span class="p">]</span><span class="w">
-  </span><span class="p">(</span><span class="nf">backtrack</span><span class="w"> </span><span class="n">n</span><span class="w"> </span><span class="p">[]))</span></code></pre></figure>
-
-<p>In the above snippet, two functions are defined. The <code class="highlighter-rouge">backtrack</code> function
+<p>In the above snippet, two functions are defined. The <code>backtrack</code> function
 first checks the length of the partial solution. The partial solution contains
-placements of queens on the chess board. When there are placements for <code class="highlighter-rouge">n</code> queens,
-we know we have a single complete solution.  However, if there are less than <code class="highlighter-rouge">n</code>
+placements of queens on the chess board. When there are placements for <code>n</code> queens,
+we know we have a single complete solution.  However, if there are less than <code>n</code>
 queens placed, the algorithm will find all the suitable placements for the next
 queen while making sure the rule of the puzzle is enforced. That’s what
-<code class="highlighter-rouge">gen-candidates</code> does; it returns all the valid placements in the next row for a
-queen. For each of the valid placements, the <code class="highlighter-rouge">backtrack</code> function will append
+<code>gen-candidates</code> does; it returns all the valid placements in the next row for a
+queen. For each of the valid placements, the <code>backtrack</code> function will append
 the placement to its partial solution, then it continues to find the next valid
 placement for the next queen by calling itself.  Put it another way, the
-<code class="highlighter-rouge">backtrack</code> function places a queen in one of the placements returned by
-<code class="highlighter-rouge">gen-candidates</code>, so it is one step/queen closer to finding a complete solution
-of placing <code class="highlighter-rouge">n</code> queens on a <code class="highlighter-rouge">n</code>x<code class="highlighter-rouge">n</code> chess board. The crucial bit is that
-<code class="highlighter-rouge">gen-candidates</code> must return proper set of candidates.</p>
+<code>backtrack</code> function places a queen in one of the placements returned by
+<code>gen-candidates</code>, so it is one step/queen closer to finding a complete solution
+of placing <code>n</code> queens on a <code>n</code>x<code>n</code> chess board. The crucial bit is that
+<code>gen-candidates</code> must return proper set of candidates.</p>
 
-<figure class="highlight"><pre><code class="language-clojure" data-lang="clojure"><span class="p">(</span><span class="k">defn</span><span class="w"> </span><span class="n">invalid?</span><span class="w">
-  </span><span class="p">[[</span><span class="n">newq-row</span><span class="w"> </span><span class="n">newq-col</span><span class="p">]</span><span class="w"> </span><span class="p">[</span><span class="n">row</span><span class="w"> </span><span class="n">col</span><span class="p">]]</span><span class="w">
-  </span><span class="p">(</span><span class="k">cond</span><span class="w">
-    </span><span class="p">(</span><span class="nb">=</span><span class="w"> </span><span class="n">row</span><span class="w"> </span><span class="n">newq-row</span><span class="p">)</span><span class="w"> </span><span class="n">true</span><span class="w">
-    </span><span class="p">(</span><span class="nb">=</span><span class="w"> </span><span class="n">col</span><span class="w"> </span><span class="n">newq-col</span><span class="p">)</span><span class="w"> </span><span class="n">true</span><span class="w">
-    </span><span class="p">(</span><span class="nb">=</span><span class="w"> </span><span class="p">(</span><span class="nf">Math/abs</span><span class="w"> </span><span class="p">(</span><span class="nb">-</span><span class="w"> </span><span class="n">row</span><span class="w"> </span><span class="n">newq-row</span><span class="p">))</span><span class="w">
-       </span><span class="p">(</span><span class="nf">Math/abs</span><span class="w"> </span><span class="p">(</span><span class="nb">-</span><span class="w"> </span><span class="n">col</span><span class="w"> </span><span class="n">newq-col</span><span class="p">)))</span><span class="w"> </span><span class="n">true</span><span class="w">
-    </span><span class="no">:else</span><span class="w"> </span><span class="n">false</span><span class="p">))</span><span class="w">
+<figure class="highlight"><pre><code class="language-clojure" data-lang="clojure"><a name="line-1"></a><span class="p">(</span><span class="kd">defn </span><span class="nv">invalid?</span>
+<a name="line-2"></a>  <span class="p">[[</span><span class="nv">newq-row</span> <span class="nv">newq-col</span><span class="p">]</span> <span class="p">[</span><span class="nv">row</span> <span class="nv">col</span><span class="p">]]</span>
+<a name="line-3"></a>  <span class="p">(</span><span class="nf">cond</span>
+<a name="line-4"></a>    <span class="p">(</span><span class="nb">= </span><span class="nv">row</span> <span class="nv">newq-row</span><span class="p">)</span> <span class="nv">true</span>
+<a name="line-5"></a>    <span class="p">(</span><span class="nb">= </span><span class="nv">col</span> <span class="nv">newq-col</span><span class="p">)</span> <span class="nv">true</span>
+<a name="line-6"></a>    <span class="p">(</span><span class="nb">= </span><span class="p">(</span><span class="nf">Math/abs</span> <span class="p">(</span><span class="nb">- </span><span class="nv">row</span> <span class="nv">newq-row</span><span class="p">))</span>
+<a name="line-7"></a>       <span class="p">(</span><span class="nf">Math/abs</span> <span class="p">(</span><span class="nb">- </span><span class="nv">col</span> <span class="nv">newq-col</span><span class="p">)))</span> <span class="nv">true</span>
+<a name="line-8"></a>    <span class="ss">:else</span> <span class="nv">false</span><span class="p">))</span>
+<a name="line-9"></a>
+<a name="line-10"></a><span class="p">(</span><span class="kd">defn </span><span class="nv">validPlacements</span>
+<a name="line-11"></a>  <span class="p">[</span><span class="nv">placements</span> <span class="nv">new-pos</span><span class="p">]</span>
+<a name="line-12"></a>  <span class="p">(</span><span class="k">let </span><span class="p">[</span><span class="nv">result</span> <span class="p">(</span><span class="nb">filter </span><span class="p">(</span><span class="nb">partial </span><span class="nv">invalid?</span> <span class="nv">new-pos</span><span class="p">)</span> <span class="nv">placements</span><span class="p">)]</span>
+<a name="line-13"></a>    <span class="p">(</span><span class="k">if </span><span class="p">(</span><span class="nf">empty?</span> <span class="nv">result</span><span class="p">)</span>
+<a name="line-14"></a>      <span class="nv">true</span>
+<a name="line-15"></a>      <span class="nv">false</span><span class="p">)))</span>
+<a name="line-16"></a>
+<a name="line-17"></a><span class="p">(</span><span class="kd">defn </span><span class="nv">gen-candidates</span> <span class="p">[</span><span class="nv">n</span> <span class="nv">placements</span><span class="p">]</span>
+<a name="line-18"></a>  <span class="p">(</span><span class="k">let </span><span class="p">[[</span><span class="nv">last-row</span> <span class="nv">last-col</span><span class="p">]</span> <span class="p">(</span><span class="k">if </span><span class="p">(</span><span class="nf">empty?</span> <span class="nv">placements</span><span class="p">)</span>
+<a name="line-19"></a>                              <span class="p">(</span><span class="nb">list </span><span class="mi">-1</span> <span class="mi">0</span><span class="p">)</span>
+<a name="line-20"></a>                              <span class="p">(</span><span class="nb">last </span><span class="nv">placements</span><span class="p">))</span>
+<a name="line-21"></a>         <span class="nv">row</span>  <span class="p">(</span><span class="nb">inc </span><span class="nv">last-row</span><span class="p">)</span>
+<a name="line-22"></a>         <span class="nv">cols</span> <span class="p">(</span><span class="nb">map </span><span class="o">#</span><span class="p">(</span><span class="nb">list </span><span class="nv">row</span> <span class="nv">%</span><span class="p">)</span> <span class="p">(</span><span class="nb">range </span><span class="nv">n</span><span class="p">))]</span>
+<a name="line-23"></a>    <span class="p">(</span><span class="nb">filter </span><span class="o">#</span><span class="p">(</span><span class="nf">validPlacements</span> <span class="nv">placements</span> <span class="nv">%</span><span class="p">)</span> <span class="nv">cols</span><span class="p">)))</span></code></pre></figure>
 
-</span><span class="p">(</span><span class="k">defn</span><span class="w"> </span><span class="n">validPlacements</span><span class="w">
-  </span><span class="p">[</span><span class="n">placements</span><span class="w"> </span><span class="n">new-pos</span><span class="p">]</span><span class="w">
-  </span><span class="p">(</span><span class="k">let</span><span class="w"> </span><span class="p">[</span><span class="n">result</span><span class="w"> </span><span class="p">(</span><span class="nb">filter</span><span class="w"> </span><span class="p">(</span><span class="nb">partial</span><span class="w"> </span><span class="n">invalid?</span><span class="w"> </span><span class="n">new-pos</span><span class="p">)</span><span class="w"> </span><span class="n">placements</span><span class="p">)]</span><span class="w">
-    </span><span class="p">(</span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="nf">empty?</span><span class="w"> </span><span class="n">result</span><span class="p">)</span><span class="w">
-      </span><span class="n">true</span><span class="w">
-      </span><span class="n">false</span><span class="p">)))</span><span class="w">
-
-</span><span class="p">(</span><span class="k">defn</span><span class="w"> </span><span class="n">gen-candidates</span><span class="w"> </span><span class="p">[</span><span class="n">n</span><span class="w"> </span><span class="n">placements</span><span class="p">]</span><span class="w">
-  </span><span class="p">(</span><span class="k">let</span><span class="w"> </span><span class="p">[[</span><span class="n">last-row</span><span class="w"> </span><span class="n">last-col</span><span class="p">]</span><span class="w"> </span><span class="p">(</span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="nf">empty?</span><span class="w"> </span><span class="n">placements</span><span class="p">)</span><span class="w">
-                              </span><span class="p">(</span><span class="nb">list</span><span class="w"> </span><span class="mi">-1</span><span class="w"> </span><span class="mi">0</span><span class="p">)</span><span class="w">
-                              </span><span class="p">(</span><span class="nb">last</span><span class="w"> </span><span class="n">placements</span><span class="p">))</span><span class="w">
-         </span><span class="n">row</span><span class="w">  </span><span class="p">(</span><span class="nb">inc</span><span class="w"> </span><span class="n">last-row</span><span class="p">)</span><span class="w">
-         </span><span class="n">cols</span><span class="w"> </span><span class="p">(</span><span class="nb">map</span><span class="w"> </span><span class="o">#</span><span class="p">(</span><span class="nb">list</span><span class="w"> </span><span class="n">row</span><span class="w"> </span><span class="n">%</span><span class="p">)</span><span class="w"> </span><span class="p">(</span><span class="nb">range</span><span class="w"> </span><span class="n">n</span><span class="p">))]</span><span class="w">
-    </span><span class="p">(</span><span class="nb">filter</span><span class="w"> </span><span class="o">#</span><span class="p">(</span><span class="nf">validPlacements</span><span class="w"> </span><span class="n">placements</span><span class="w"> </span><span class="n">%</span><span class="p">)</span><span class="w"> </span><span class="n">cols</span><span class="p">)))</span></code></pre></figure>
-
-<p>The idea of <code class="highlighter-rouge">gen-candidates</code> is to first generate all possible placements for
+<p>The idea of <code>gen-candidates</code> is to first generate all possible placements for
 the next queen, then filter out the placements that will violate the placement
 rule—no two queens share the same row, column, and diagonal. The two
-functions, <code class="highlighter-rouge">validPlacements</code> and <code class="highlighter-rouge">invalid?</code> are used to enforce the rule of the
+functions, <code>validPlacements</code> and <code>invalid?</code> are used to enforce the rule of the
 puzzle so no queens can attack each other.</p>
 
 <p>In total there are 92 possible ways to place eights queen on a chess board. You
 can find all the solutions returned by calling:</p>
 
-<figure class="highlight"><pre><code class="language-clojure" data-lang="clojure"><span class="n">user=&gt;</span><span class="w"> </span><span class="p">(</span><span class="nb">count</span><span class="w"> </span><span class="p">(</span><span class="nf">n-queens</span><span class="w"> </span><span class="mi">8</span><span class="p">))</span><span class="w">
-</span><span class="mi">92</span></code></pre></figure>
+<figure class="highlight"><pre><code class="language-clojure" data-lang="clojure"><a name="line-1"></a><span class="nv">user=&gt;</span> <span class="p">(</span><span class="nb">count </span><span class="p">(</span><span class="nf">n-queens</span> <span class="mi">8</span><span class="p">))</span>
+<a name="line-2"></a><span class="mi">92</span></code></pre></figure>
 
 <p>Due to readability and space, I will show the solutions for a smaller
 chess board. Here are the solutions for the four-queens puzzle:</p>
 
-<figure class="highlight"><pre><code class="language-clojure" data-lang="clojure"><span class="n">user=&gt;</span><span class="w"> </span><span class="p">(</span><span class="nf">n-queens</span><span class="w"> </span><span class="mi">4</span><span class="p">)</span><span class="w">
-</span><span class="p">([(</span><span class="nf">0</span><span class="w"> </span><span class="mi">1</span><span class="p">)</span><span class="w"> </span><span class="p">(</span><span class="nf">1</span><span class="w"> </span><span class="mi">3</span><span class="p">)</span><span class="w"> </span><span class="p">(</span><span class="nf">2</span><span class="w"> </span><span class="mi">0</span><span class="p">)</span><span class="w"> </span><span class="p">(</span><span class="nf">3</span><span class="w"> </span><span class="mi">2</span><span class="p">)]</span><span class="w">
- </span><span class="p">[(</span><span class="nf">0</span><span class="w"> </span><span class="mi">2</span><span class="p">)</span><span class="w"> </span><span class="p">(</span><span class="nf">1</span><span class="w"> </span><span class="mi">0</span><span class="p">)</span><span class="w"> </span><span class="p">(</span><span class="nf">2</span><span class="w"> </span><span class="mi">3</span><span class="p">)</span><span class="w"> </span><span class="p">(</span><span class="nf">3</span><span class="w"> </span><span class="mi">1</span><span class="p">)])</span></code></pre></figure>
+<figure class="highlight"><pre><code class="language-clojure" data-lang="clojure"><a name="line-1"></a><span class="nv">user=&gt;</span> <span class="p">(</span><span class="nf">n-queens</span> <span class="mi">4</span><span class="p">)</span>
+<a name="line-2"></a><span class="p">([(</span><span class="mi">0</span> <span class="mi">1</span><span class="p">)</span> <span class="p">(</span><span class="mi">1</span> <span class="mi">3</span><span class="p">)</span> <span class="p">(</span><span class="mi">2</span> <span class="mi">0</span><span class="p">)</span> <span class="p">(</span><span class="mi">3</span> <span class="mi">2</span><span class="p">)]</span>
+<a name="line-3"></a> <span class="p">[(</span><span class="mi">0</span> <span class="mi">2</span><span class="p">)</span> <span class="p">(</span><span class="mi">1</span> <span class="mi">0</span><span class="p">)</span> <span class="p">(</span><span class="mi">2</span> <span class="mi">3</span><span class="p">)</span> <span class="p">(</span><span class="mi">3</span> <span class="mi">1</span><span class="p">)])</span></code></pre></figure>
 
 <p>There are two solutions to place four queens on a 4x4 chess board. The return
 value is a list that contains vectors, in this case, there are two. Each vector
@@ -161,11 +161,11 @@ column (both start at 0).</p>
 
 <p>And finally, here are the solutions for six-queens:</p>
 
-<figure class="highlight"><pre><code class="language-clojure" data-lang="clojure"><span class="n">user=&gt;</span><span class="w"> </span><span class="p">(</span><span class="nf">pprint</span><span class="w"> </span><span class="p">(</span><span class="nf">n-queens</span><span class="w"> </span><span class="mi">6</span><span class="p">))</span><span class="w">
-</span><span class="p">([(</span><span class="nf">0</span><span class="w"> </span><span class="mi">1</span><span class="p">)</span><span class="w"> </span><span class="p">(</span><span class="nf">1</span><span class="w"> </span><span class="mi">3</span><span class="p">)</span><span class="w"> </span><span class="p">(</span><span class="nf">2</span><span class="w"> </span><span class="mi">5</span><span class="p">)</span><span class="w"> </span><span class="p">(</span><span class="nf">3</span><span class="w"> </span><span class="mi">0</span><span class="p">)</span><span class="w"> </span><span class="p">(</span><span class="nf">4</span><span class="w"> </span><span class="mi">2</span><span class="p">)</span><span class="w"> </span><span class="p">(</span><span class="nf">5</span><span class="w"> </span><span class="mi">4</span><span class="p">)]</span><span class="w">
- </span><span class="p">[(</span><span class="nf">0</span><span class="w"> </span><span class="mi">2</span><span class="p">)</span><span class="w"> </span><span class="p">(</span><span class="nf">1</span><span class="w"> </span><span class="mi">5</span><span class="p">)</span><span class="w"> </span><span class="p">(</span><span class="nf">2</span><span class="w"> </span><span class="mi">1</span><span class="p">)</span><span class="w"> </span><span class="p">(</span><span class="nf">3</span><span class="w"> </span><span class="mi">4</span><span class="p">)</span><span class="w"> </span><span class="p">(</span><span class="nf">4</span><span class="w"> </span><span class="mi">0</span><span class="p">)</span><span class="w"> </span><span class="p">(</span><span class="nf">5</span><span class="w"> </span><span class="mi">3</span><span class="p">)]</span><span class="w">
- </span><span class="p">[(</span><span class="nf">0</span><span class="w"> </span><span class="mi">3</span><span class="p">)</span><span class="w"> </span><span class="p">(</span><span class="nf">1</span><span class="w"> </span><span class="mi">0</span><span class="p">)</span><span class="w"> </span><span class="p">(</span><span class="nf">2</span><span class="w"> </span><span class="mi">4</span><span class="p">)</span><span class="w"> </span><span class="p">(</span><span class="nf">3</span><span class="w"> </span><span class="mi">1</span><span class="p">)</span><span class="w"> </span><span class="p">(</span><span class="nf">4</span><span class="w"> </span><span class="mi">5</span><span class="p">)</span><span class="w"> </span><span class="p">(</span><span class="nf">5</span><span class="w"> </span><span class="mi">2</span><span class="p">)]</span><span class="w">
- </span><span class="p">[(</span><span class="nf">0</span><span class="w"> </span><span class="mi">4</span><span class="p">)</span><span class="w"> </span><span class="p">(</span><span class="nf">1</span><span class="w"> </span><span class="mi">2</span><span class="p">)</span><span class="w"> </span><span class="p">(</span><span class="nf">2</span><span class="w"> </span><span class="mi">0</span><span class="p">)</span><span class="w"> </span><span class="p">(</span><span class="nf">3</span><span class="w"> </span><span class="mi">5</span><span class="p">)</span><span class="w"> </span><span class="p">(</span><span class="nf">4</span><span class="w"> </span><span class="mi">3</span><span class="p">)</span><span class="w"> </span><span class="p">(</span><span class="nf">5</span><span class="w"> </span><span class="mi">1</span><span class="p">)])</span></code></pre></figure>
+<figure class="highlight"><pre><code class="language-clojure" data-lang="clojure"><a name="line-1"></a><span class="nv">user=&gt;</span> <span class="p">(</span><span class="nf">pprint</span> <span class="p">(</span><span class="nf">n-queens</span> <span class="mi">6</span><span class="p">))</span>
+<a name="line-2"></a><span class="p">([(</span><span class="mi">0</span> <span class="mi">1</span><span class="p">)</span> <span class="p">(</span><span class="mi">1</span> <span class="mi">3</span><span class="p">)</span> <span class="p">(</span><span class="mi">2</span> <span class="mi">5</span><span class="p">)</span> <span class="p">(</span><span class="mi">3</span> <span class="mi">0</span><span class="p">)</span> <span class="p">(</span><span class="mi">4</span> <span class="mi">2</span><span class="p">)</span> <span class="p">(</span><span class="mi">5</span> <span class="mi">4</span><span class="p">)]</span>
+<a name="line-3"></a> <span class="p">[(</span><span class="mi">0</span> <span class="mi">2</span><span class="p">)</span> <span class="p">(</span><span class="mi">1</span> <span class="mi">5</span><span class="p">)</span> <span class="p">(</span><span class="mi">2</span> <span class="mi">1</span><span class="p">)</span> <span class="p">(</span><span class="mi">3</span> <span class="mi">4</span><span class="p">)</span> <span class="p">(</span><span class="mi">4</span> <span class="mi">0</span><span class="p">)</span> <span class="p">(</span><span class="mi">5</span> <span class="mi">3</span><span class="p">)]</span>
+<a name="line-4"></a> <span class="p">[(</span><span class="mi">0</span> <span class="mi">3</span><span class="p">)</span> <span class="p">(</span><span class="mi">1</span> <span class="mi">0</span><span class="p">)</span> <span class="p">(</span><span class="mi">2</span> <span class="mi">4</span><span class="p">)</span> <span class="p">(</span><span class="mi">3</span> <span class="mi">1</span><span class="p">)</span> <span class="p">(</span><span class="mi">4</span> <span class="mi">5</span><span class="p">)</span> <span class="p">(</span><span class="mi">5</span> <span class="mi">2</span><span class="p">)]</span>
+<a name="line-5"></a> <span class="p">[(</span><span class="mi">0</span> <span class="mi">4</span><span class="p">)</span> <span class="p">(</span><span class="mi">1</span> <span class="mi">2</span><span class="p">)</span> <span class="p">(</span><span class="mi">2</span> <span class="mi">0</span><span class="p">)</span> <span class="p">(</span><span class="mi">3</span> <span class="mi">5</span><span class="p">)</span> <span class="p">(</span><span class="mi">4</span> <span class="mi">3</span><span class="p">)</span> <span class="p">(</span><span class="mi">5</span> <span class="mi">1</span><span class="p">)])</span></code></pre></figure>
 
 <p>There you have it. My attempt at the n-queens puzzle using clojure. I must admit
 the performance is not that great, but I think it is a decent start.</p>

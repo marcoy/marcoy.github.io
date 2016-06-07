@@ -89,29 +89,29 @@ corrupted block will be different.</p>
 
 <p>As mentioned earlier, you can verify the validity a data block without having
 the whole Merkle Tree. Referring to the above diagram, say, if you want to
-verify if data block <code class="highlighter-rouge">1</code> is valid, you only need <code class="highlighter-rouge">Hash 0-1</code> and <code class="highlighter-rouge">Hash 1</code>, which
-you can get from your peers. First, you hash data block <code class="highlighter-rouge">1</code>, which gives you
-<code class="highlighter-rouge">Hash 0-0</code>. Second, you combine <code class="highlighter-rouge">Hash 0-0</code> with <code class="highlighter-rouge">Hash 0-1</code> in order to compute
-<code class="highlighter-rouge">Hash 0</code>. Then combine <code class="highlighter-rouge">Hash 0</code> and <code class="highlighter-rouge">Hash 1</code> to get the root hash. Finally, you
+verify if data block <code>1</code> is valid, you only need <code>Hash 0-1</code> and <code>Hash 1</code>, which
+you can get from your peers. First, you hash data block <code>1</code>, which gives you
+<code>Hash 0-0</code>. Second, you combine <code>Hash 0-0</code> with <code>Hash 0-1</code> in order to compute
+<code>Hash 0</code>. Then combine <code>Hash 0</code> and <code>Hash 1</code> to get the root hash. Finally, you
 can compare the root hash with the one you acquired through a trusted source. If
-they match, that means data block <code class="highlighter-rouge">1</code> is valid. However, if they don’t match, it
-could mean either one or a combination of <code class="highlighter-rouge">Hash 0-1</code>, <code class="highlighter-rouge">Hash 1</code> or data block <code class="highlighter-rouge">1</code>
+they match, that means data block <code>1</code> is valid. However, if they don’t match, it
+could mean either one or a combination of <code>Hash 0-1</code>, <code>Hash 1</code> or data block <code>1</code>
 is invalid.</p>
 
 <h4 id="hash-function">Hash Function</h4>
 <p>Since a Merkle Tree is basically a tree of hashes, a hash function is a
-crucial component. I’m using <code class="highlighter-rouge">SHA-1</code> as the hash function. You are free to
+crucial component. I’m using <code>SHA-1</code> as the hash function. You are free to
 choose whatever hash function, of course.</p>
 
 <p>Below is the hash function I’m using in my Merkle Tree implementation. I’m using
 the SHA-1 implementation that comes with JAVA. The output of the function is a
-hex string. The input can either be a <code class="highlighter-rouge">String</code>, or <code class="highlighter-rouge">byte[]</code>.</p>
+hex string. The input can either be a <code>String</code>, or <code>byte[]</code>.</p>
 
-<figure class="highlight"><pre><code class="language-clojure" data-lang="clojure"><span class="p">(</span><span class="k">defn</span><span class="w"> </span><span class="n">hashfn</span><span class="w"> </span><span class="p">[</span><span class="n">v</span><span class="p">]</span><span class="w">
-  </span><span class="p">(</span><span class="nb">apply</span><span class="w"> </span><span class="nb">str</span><span class="w"> </span><span class="p">(</span><span class="nb">map</span><span class="w"> </span><span class="o">#</span><span class="p">(</span><span class="nf">format</span><span class="w"> </span><span class="s">"%02x"</span><span class="w"> </span><span class="n">%</span><span class="p">)</span><span class="w">
-                  </span><span class="p">(</span><span class="nb">-&gt;</span><span class="w"> </span><span class="p">(</span><span class="nb">doto</span><span class="w"> </span><span class="p">(</span><span class="nf">MessageDigest/getInstance</span><span class="w"> </span><span class="s">"SHA-1"</span><span class="p">)</span><span class="w">
-                        </span><span class="p">(</span><span class="nf">.update</span><span class="w"> </span><span class="p">(</span><span class="nf">.getBytes</span><span class="w"> </span><span class="p">(</span><span class="nf">String.</span><span class="w"> </span><span class="n">v</span><span class="p">)</span><span class="w"> </span><span class="s">"UTF-8"</span><span class="p">)))</span><span class="w">
-                      </span><span class="n">.digest</span><span class="p">))))</span></code></pre></figure>
+<figure class="highlight"><pre><code class="language-clojure" data-lang="clojure"><a name="line-1"></a><span class="p">(</span><span class="kd">defn </span><span class="nv">hashfn</span> <span class="p">[</span><span class="nv">v</span><span class="p">]</span>
+<a name="line-2"></a>  <span class="p">(</span><span class="nb">apply str </span><span class="p">(</span><span class="nb">map </span><span class="o">#</span><span class="p">(</span><span class="nf">format</span> <span class="s">&quot;%02x&quot;</span> <span class="nv">%</span><span class="p">)</span>
+<a name="line-3"></a>                  <span class="p">(</span><span class="nb">-&gt; </span><span class="p">(</span><span class="nb">doto </span><span class="p">(</span><span class="nf">MessageDigest/getInstance</span> <span class="s">&quot;SHA-1&quot;</span><span class="p">)</span>
+<a name="line-4"></a>                        <span class="p">(</span><span class="nf">.update</span> <span class="p">(</span><span class="nf">.getBytes</span> <span class="p">(</span><span class="nf">String.</span> <span class="nv">v</span><span class="p">)</span> <span class="s">&quot;UTF-8&quot;</span><span class="p">)))</span>
+<a name="line-5"></a>                      <span class="nv">.digest</span><span class="p">))))</span></code></pre></figure>
 
 <h4 id="tree-construction">Tree Construction</h4>
 <p>The approach of this implementation is to, first, create a full binary tree,
@@ -123,7 +123,7 @@ approach, where each node has a reference to its right and left subtrees.
 Another approach is to use an array to represent that tree. In my
 implementation, Every node in the tree is a dictionary like the following:</p>
 
-<figure class="highlight"><pre><code class="language-clojure" data-lang="clojure"><span class="p">(</span><span class="k">def</span><span class="w"> </span><span class="nb">node</span><span class="w"> </span><span class="p">{</span><span class="no">:left</span><span class="w"> </span><span class="n">nil</span><span class="w"> </span><span class="no">:right</span><span class="w"> </span><span class="n">nil</span><span class="w"> </span><span class="no">:hashval</span><span class="w"> </span><span class="n">nil</span><span class="w"> </span><span class="no">:height</span><span class="w"> </span><span class="n">height</span><span class="p">})</span></code></pre></figure>
+<figure class="highlight"><pre><code class="language-clojure" data-lang="clojure"><a name="line-1"></a><span class="p">(</span><span class="k">def </span><span class="nb">node </span><span class="p">{</span><span class="ss">:left</span> <span class="nv">nil</span> <span class="ss">:right</span> <span class="nv">nil</span> <span class="ss">:hashval</span> <span class="nv">nil</span> <span class="ss">:height</span> <span class="nv">height</span><span class="p">})</span></code></pre></figure>
 
 <p>Here is a more detail rundown of the implementation. Given a list of hashes, my
 implementation will construct a full binary tree with sufficient height such
@@ -134,52 +134,52 @@ for a node is set after both its children are constructed. As it recurses down
 to a leaf node, it will grab a hash from the given hash list. The updated
 hash list is returned when it unwinds from the recursion.</p>
 
-<figure class="highlight"><pre><code class="language-clojure" data-lang="clojure"><span class="p">(</span><span class="k">defn</span><span class="w"> </span><span class="n">merkle-tree</span><span class="w">
-  </span><span class="p">([</span><span class="n">hashes</span><span class="p">]</span><span class="w">
-   </span><span class="p">(</span><span class="k">let</span><span class="w"> </span><span class="p">[</span><span class="n">height</span><span class="w"> </span><span class="p">(</span><span class="nf">Math/ceil</span><span class="w"> </span><span class="p">(</span><span class="nf">log2</span><span class="w"> </span><span class="p">(</span><span class="nb">count</span><span class="w"> </span><span class="n">hashes</span><span class="p">)))]</span><span class="w">
-     </span><span class="p">(</span><span class="nb">first</span><span class="w"> </span><span class="p">(</span><span class="nf">merkle-tree</span><span class="w"> </span><span class="n">height</span><span class="w"> </span><span class="n">hashes</span><span class="p">))))</span><span class="w">
-  </span><span class="p">([</span><span class="n">height</span><span class="w"> </span><span class="n">hashes</span><span class="p">]</span><span class="w">
-   </span><span class="p">(</span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="nb">&lt;</span><span class="w"> </span><span class="n">height</span><span class="w"> </span><span class="mi">0</span><span class="p">)</span><span class="w">
-     </span><span class="p">[</span><span class="n">nil</span><span class="w"> </span><span class="n">hashes</span><span class="p">]</span><span class="w">
-     </span><span class="p">(</span><span class="k">let</span><span class="w"> </span><span class="p">[[</span><span class="n">left-tree</span><span class="w"> </span><span class="n">new-hashes</span><span class="p">]</span><span class="w"> </span><span class="p">(</span><span class="nf">merkle-tree</span><span class="w"> </span><span class="p">(</span><span class="nb">dec</span><span class="w"> </span><span class="n">height</span><span class="p">)</span><span class="w"> </span><span class="n">hashes</span><span class="p">)</span><span class="w">
-           </span><span class="p">[</span><span class="n">right-tree</span><span class="w"> </span><span class="n">new-hashes</span><span class="p">]</span><span class="w"> </span><span class="p">(</span><span class="nf">merkle-tree</span><span class="w"> </span><span class="p">(</span><span class="nb">dec</span><span class="w"> </span><span class="n">height</span><span class="p">)</span><span class="w"> </span><span class="n">new-hashes</span><span class="p">)</span><span class="w">
-           </span><span class="c1">;; create a new node
-</span><span class="w">           </span><span class="n">n</span><span class="w"> </span><span class="p">(</span><span class="nb">-&gt;</span><span class="w"> </span><span class="p">{</span><span class="no">:left</span><span class="w"> </span><span class="n">nil</span><span class="w"> </span><span class="no">:right</span><span class="w"> </span><span class="n">nil</span><span class="w"> </span><span class="no">:hashval</span><span class="w"> </span><span class="n">nil</span><span class="w"> </span><span class="no">:height</span><span class="w"> </span><span class="n">height</span><span class="p">}</span><span class="w">
-                 </span><span class="p">(</span><span class="nb">assoc</span><span class="w"> </span><span class="no">:left</span><span class="w"> </span><span class="n">left-tree</span><span class="p">)</span><span class="w">
-                 </span><span class="p">(</span><span class="nb">assoc</span><span class="w"> </span><span class="no">:right</span><span class="w"> </span><span class="n">right-tree</span><span class="p">))]</span><span class="w">
-       </span><span class="c1">;; update hashval of current node
-</span><span class="w">       </span><span class="c1">;; if it is a leaf node, take a hash from hash list. Otherwise,
-</span><span class="w">       </span><span class="c1">;; hash the concatenation of its children's hashes.
-</span><span class="w">       </span><span class="p">(</span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="nb">&gt;</span><span class="w"> </span><span class="n">height</span><span class="w"> </span><span class="mi">0</span><span class="p">)</span><span class="w">
-         </span><span class="p">[(</span><span class="nb">assoc</span><span class="w"> </span><span class="n">n</span><span class="w"> </span><span class="no">:hashval</span><span class="w"> </span><span class="p">(</span><span class="nf">hashfn</span><span class="w"> </span><span class="p">(</span><span class="nb">str</span><span class="w"> </span><span class="p">(</span><span class="no">:hashval</span><span class="w"> </span><span class="n">left-tree</span><span class="p">)</span><span class="w">
-                                         </span><span class="p">(</span><span class="no">:hashval</span><span class="w"> </span><span class="n">right-tree</span><span class="p">))))</span><span class="w">
-          </span><span class="n">new-hashes</span><span class="p">]</span><span class="w">
-         </span><span class="p">[(</span><span class="nb">assoc</span><span class="w"> </span><span class="n">n</span><span class="w"> </span><span class="no">:hashval</span><span class="w"> </span><span class="p">(</span><span class="nb">first</span><span class="w"> </span><span class="n">new-hashes</span><span class="p">))</span><span class="w"> </span><span class="p">(</span><span class="nb">drop</span><span class="w"> </span><span class="mi">1</span><span class="w"> </span><span class="n">new-hashes</span><span class="p">)])))))</span></code></pre></figure>
+<figure class="highlight"><pre><code class="language-clojure" data-lang="clojure"><a name="line-1"></a><span class="p">(</span><span class="kd">defn </span><span class="nv">merkle-tree</span>
+<a name="line-2"></a>  <span class="p">([</span><span class="nv">hashes</span><span class="p">]</span>
+<a name="line-3"></a>   <span class="p">(</span><span class="k">let </span><span class="p">[</span><span class="nv">height</span> <span class="p">(</span><span class="nf">Math/ceil</span> <span class="p">(</span><span class="nf">log2</span> <span class="p">(</span><span class="nb">count </span><span class="nv">hashes</span><span class="p">)))]</span>
+<a name="line-4"></a>     <span class="p">(</span><span class="nb">first </span><span class="p">(</span><span class="nf">merkle-tree</span> <span class="nv">height</span> <span class="nv">hashes</span><span class="p">))))</span>
+<a name="line-5"></a>  <span class="p">([</span><span class="nv">height</span> <span class="nv">hashes</span><span class="p">]</span>
+<a name="line-6"></a>   <span class="p">(</span><span class="k">if </span><span class="p">(</span><span class="nb">&lt; </span><span class="nv">height</span> <span class="mi">0</span><span class="p">)</span>
+<a name="line-7"></a>     <span class="p">[</span><span class="nv">nil</span> <span class="nv">hashes</span><span class="p">]</span>
+<a name="line-8"></a>     <span class="p">(</span><span class="k">let </span><span class="p">[[</span><span class="nv">left-tree</span> <span class="nv">new-hashes</span><span class="p">]</span> <span class="p">(</span><span class="nf">merkle-tree</span> <span class="p">(</span><span class="nb">dec </span><span class="nv">height</span><span class="p">)</span> <span class="nv">hashes</span><span class="p">)</span>
+<a name="line-9"></a>           <span class="p">[</span><span class="nv">right-tree</span> <span class="nv">new-hashes</span><span class="p">]</span> <span class="p">(</span><span class="nf">merkle-tree</span> <span class="p">(</span><span class="nb">dec </span><span class="nv">height</span><span class="p">)</span> <span class="nv">new-hashes</span><span class="p">)</span>
+<a name="line-10"></a>           <span class="c1">;; create a new node</span>
+<a name="line-11"></a>           <span class="nv">n</span> <span class="p">(</span><span class="nb">-&gt; </span><span class="p">{</span><span class="ss">:left</span> <span class="nv">nil</span> <span class="ss">:right</span> <span class="nv">nil</span> <span class="ss">:hashval</span> <span class="nv">nil</span> <span class="ss">:height</span> <span class="nv">height</span><span class="p">}</span>
+<a name="line-12"></a>                 <span class="p">(</span><span class="nb">assoc </span><span class="ss">:left</span> <span class="nv">left-tree</span><span class="p">)</span>
+<a name="line-13"></a>                 <span class="p">(</span><span class="nb">assoc </span><span class="ss">:right</span> <span class="nv">right-tree</span><span class="p">))]</span>
+<a name="line-14"></a>       <span class="c1">;; update hashval of current node</span>
+<a name="line-15"></a>       <span class="c1">;; if it is a leaf node, take a hash from hash list. Otherwise,</span>
+<a name="line-16"></a>       <span class="c1">;; hash the concatenation of its children&#39;s hashes.</span>
+<a name="line-17"></a>       <span class="p">(</span><span class="k">if </span><span class="p">(</span><span class="nb">&gt; </span><span class="nv">height</span> <span class="mi">0</span><span class="p">)</span>
+<a name="line-18"></a>         <span class="p">[(</span><span class="nb">assoc </span><span class="nv">n</span> <span class="ss">:hashval</span> <span class="p">(</span><span class="nf">hashfn</span> <span class="p">(</span><span class="nb">str </span><span class="p">(</span><span class="ss">:hashval</span> <span class="nv">left-tree</span><span class="p">)</span>
+<a name="line-19"></a>                                         <span class="p">(</span><span class="ss">:hashval</span> <span class="nv">right-tree</span><span class="p">))))</span>
+<a name="line-20"></a>          <span class="nv">new-hashes</span><span class="p">]</span>
+<a name="line-21"></a>         <span class="p">[(</span><span class="nb">assoc </span><span class="nv">n</span> <span class="ss">:hashval</span> <span class="p">(</span><span class="nb">first </span><span class="nv">new-hashes</span><span class="p">))</span> <span class="p">(</span><span class="nb">drop </span><span class="mi">1</span> <span class="nv">new-hashes</span><span class="p">)])))))</span></code></pre></figure>
 
 <h4 id="usage">Usage</h4>
-<p>Let’s define two helper functions, <code class="highlighter-rouge">random-bytes</code>, and <code class="highlighter-rouge">create-hash-list</code>. These
+<p>Let’s define two helper functions, <code>random-bytes</code>, and <code>create-hash-list</code>. These
 functions help making a list of hashes easily.</p>
 
-<figure class="highlight"><pre><code class="language-clojure" data-lang="clojure"><span class="p">(</span><span class="k">defn</span><span class="w"> </span><span class="n">random-bytes</span><span class="w">
-  </span><span class="p">([]</span><span class="w"> </span><span class="p">(</span><span class="nf">random-bytes</span><span class="w"> </span><span class="mi">20</span><span class="p">))</span><span class="w">
-  </span><span class="p">([</span><span class="n">n</span><span class="p">]</span><span class="w"> </span><span class="p">(</span><span class="k">let</span><span class="w"> </span><span class="p">[</span><span class="n">r</span><span class="w"> </span><span class="p">(</span><span class="nf">SecureRandom.</span><span class="p">)</span><span class="w">
-             </span><span class="n">rand-bytes</span><span class="w"> </span><span class="p">(</span><span class="nf">byte-array</span><span class="w"> </span><span class="n">n</span><span class="p">)]</span><span class="w">
-         </span><span class="p">(</span><span class="nf">do</span><span class="w">
-           </span><span class="p">(</span><span class="nf">.nextBytes</span><span class="w"> </span><span class="n">r</span><span class="w"> </span><span class="n">rand-bytes</span><span class="p">)</span><span class="w">
-           </span><span class="n">rand-bytes</span><span class="p">))))</span><span class="w">
-
-</span><span class="p">(</span><span class="k">defn</span><span class="w"> </span><span class="n">create-hash-list</span><span class="w"> </span><span class="p">[</span><span class="n">n</span><span class="p">]</span><span class="w">
-  </span><span class="p">(</span><span class="nb">map</span><span class="w"> </span><span class="n">hashfn</span><span class="w"> </span><span class="p">(</span><span class="nb">take</span><span class="w"> </span><span class="n">n</span><span class="w"> </span><span class="p">(</span><span class="nf">repeatedly</span><span class="w"> </span><span class="n">random-bytes</span><span class="p">))))</span></code></pre></figure>
+<figure class="highlight"><pre><code class="language-clojure" data-lang="clojure"><a name="line-1"></a><span class="p">(</span><span class="kd">defn </span><span class="nv">random-bytes</span>
+<a name="line-2"></a>  <span class="p">([]</span> <span class="p">(</span><span class="nf">random-bytes</span> <span class="mi">20</span><span class="p">))</span>
+<a name="line-3"></a>  <span class="p">([</span><span class="nv">n</span><span class="p">]</span> <span class="p">(</span><span class="k">let </span><span class="p">[</span><span class="nv">r</span> <span class="p">(</span><span class="nf">SecureRandom.</span><span class="p">)</span>
+<a name="line-4"></a>             <span class="nv">rand-bytes</span> <span class="p">(</span><span class="nf">byte-array</span> <span class="nv">n</span><span class="p">)]</span>
+<a name="line-5"></a>         <span class="p">(</span><span class="nf">do</span>
+<a name="line-6"></a>           <span class="p">(</span><span class="nf">.nextBytes</span> <span class="nv">r</span> <span class="nv">rand-bytes</span><span class="p">)</span>
+<a name="line-7"></a>           <span class="nv">rand-bytes</span><span class="p">))))</span>
+<a name="line-8"></a>
+<a name="line-9"></a><span class="p">(</span><span class="kd">defn </span><span class="nv">create-hash-list</span> <span class="p">[</span><span class="nv">n</span><span class="p">]</span>
+<a name="line-10"></a>  <span class="p">(</span><span class="nb">map </span><span class="nv">hashfn</span> <span class="p">(</span><span class="nb">take </span><span class="nv">n</span> <span class="p">(</span><span class="nf">repeatedly</span> <span class="nv">random-bytes</span><span class="p">))))</span></code></pre></figure>
 
 <p>Now you can construct a Merkle tree based on a list of hashes, and get its top
 hash.</p>
 
-<figure class="highlight"><pre><code class="language-clojure" data-lang="clojure"><span class="n">user=&gt;</span><span class="w"> </span><span class="p">(</span><span class="no">:hashval</span><span class="w"> </span><span class="p">(</span><span class="nf">merkle-tree</span><span class="w"> </span><span class="p">(</span><span class="nf">create-hash-list</span><span class="w"> </span><span class="mi">2</span><span class="p">)))</span><span class="w">
-</span><span class="s">"f80ca0da9657a67cc7767ba3aa64658715b5b69f"</span></code></pre></figure>
+<figure class="highlight"><pre><code class="language-clojure" data-lang="clojure"><a name="line-1"></a><span class="nv">user=&gt;</span> <span class="p">(</span><span class="ss">:hashval</span> <span class="p">(</span><span class="nf">merkle-tree</span> <span class="p">(</span><span class="nf">create-hash-list</span> <span class="mi">2</span><span class="p">)))</span>
+<a name="line-2"></a><span class="s">&quot;f80ca0da9657a67cc7767ba3aa64658715b5b69f&quot;</span></code></pre></figure>
 
 <h4 id="conclusion">Conclusion</h4>
 <p>There is a main drawback with this implementation. Since the implementation is
-using recursion, if the given hash list is very long, the <code class="highlighter-rouge">merkle-tree</code> function
+using recursion, if the given hash list is very long, the <code>merkle-tree</code> function
 will blow the stack. All in all, Merkle Tree is a really neat data structure
 that has many applications, especially in the space of peer-to-peer networks.</p>
 

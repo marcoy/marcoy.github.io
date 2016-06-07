@@ -80,71 +80,71 @@ consumer.</p>
 sources for ticker data. The supported sources are <a href="https://campbx.com">CampBx</a>,
 <a href="https://www.bitstamp.net">Bitstamp</a>, <a href="http://vircurex.com">Vircurex</a>,
 <a href="https://btc-e.com">BTC-e</a>, and <a href="https://vip.btcchina.com">BTC China</a>. The logic
-of the polling, shown below, will poll a given ticker URL to <code class="highlighter-rouge">GET</code> the market
-data. It will place the data returned from the <code class="highlighter-rouge">GET</code> request into the <code class="highlighter-rouge">out</code>
-channel. If no process is consuming the <code class="highlighter-rouge">out</code> channel, it will wait for a
+of the polling, shown below, will poll a given ticker URL to <code>GET</code> the market
+data. It will place the data returned from the <code>GET</code> request into the <code>out</code>
+channel. If no process is consuming the <code>out</code> channel, it will wait for a
 specified time and poll the ticker URL again. This ensures the data that a
 consumer receives are kept somewhat up-to-date. There is a timeout for the
-initial <code class="highlighter-rouge">GET</code> request. If the <code class="highlighter-rouge">GET</code> request timeout has elapsed, it will retry
-again. All of these polling logics are performed inside a <code class="highlighter-rouge">go</code> block, which is
+initial <code>GET</code> request. If the <code>GET</code> request timeout has elapsed, it will retry
+again. All of these polling logics are performed inside a <code>go</code> block, which is
 similar to
 <a href="https://gobyexample.com/goroutines">goroutines</a> in <a href="http://golang.org/">Go</a>. As
 a result, the polling is done in a thread pool. So, multiple <em>feeds</em> can be
 constructed, and poll concurrently.</p>
 
-<figure class="highlight"><pre><code class="language-clojure" data-lang="clojure"><span class="p">(</span><span class="k">defn</span><span class="w"> </span><span class="n">create-ticker-feed</span><span class="w">
-  </span><span class="p">[</span><span class="n">ticker-url</span><span class="w"> </span><span class="o">&amp;</span><span class="w"> </span><span class="p">{</span><span class="no">:keys</span><span class="w"> </span><span class="p">[</span><span class="n">get-timeout</span><span class="w"> </span><span class="n">async-put-timeout</span><span class="w"> </span><span class="n">park-time-fn</span><span class="p">]</span><span class="w"> </span><span class="no">:as</span><span class="w"> </span><span class="n">params</span><span class="p">}]</span><span class="w">
-  </span><span class="p">(</span><span class="k">let</span><span class="w"> </span><span class="p">[</span><span class="n">out</span><span class="w"> </span><span class="p">(</span><span class="nf">chan</span><span class="p">)]</span><span class="w">
-    </span><span class="p">(</span><span class="nf">go-loop</span><span class="w"> </span><span class="p">[]</span><span class="w">
-      </span><span class="p">(</span><span class="k">let</span><span class="w"> </span><span class="p">[</span><span class="n">time-out</span><span class="w"> </span><span class="p">(</span><span class="nf">as/timeout</span><span class="w"> </span><span class="n">get-timeout</span><span class="p">)</span><span class="w">
-            </span><span class="n">ticker-poll</span><span class="w"> </span><span class="p">(</span><span class="nf">http-get</span><span class="w"> </span><span class="n">ticker-url</span><span class="p">)</span><span class="w">
-            </span><span class="p">[</span><span class="n">v</span><span class="w"> </span><span class="n">c</span><span class="p">]</span><span class="w"> </span><span class="p">(</span><span class="nf">alts!</span><span class="w"> </span><span class="p">[</span><span class="n">time-out</span><span class="w"> </span><span class="n">ticker-poll</span><span class="p">])]</span><span class="w">
-        </span><span class="p">(</span><span class="k">cond</span><span class="w">
-          </span><span class="p">(</span><span class="nb">=</span><span class="w"> </span><span class="n">c</span><span class="w"> </span><span class="n">ticker-poll</span><span class="p">)</span><span class="w"> </span><span class="p">(</span><span class="k">let</span><span class="w"> </span><span class="p">[[</span><span class="n">_</span><span class="w"> </span><span class="n">ch</span><span class="p">]</span><span class="w"> </span><span class="p">(</span><span class="nf">alts!</span><span class="w"> </span><span class="p">[[</span><span class="n">out</span><span class="w"> </span><span class="n">v</span><span class="p">]</span><span class="w"> </span><span class="p">(</span><span class="nf">as/timeout</span><span class="w"> </span><span class="n">async-put-timeout</span><span class="p">)])]</span><span class="w">
-                              </span><span class="c1">;; If no-one is consuming the out channel, polls
-</span><span class="w">                              </span><span class="c1">;; the url again after some time.
-</span><span class="w">                              </span><span class="p">(</span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="nb">=</span><span class="w"> </span><span class="n">ch</span><span class="w"> </span><span class="n">out</span><span class="p">)</span><span class="w">
-                                </span><span class="p">(</span><span class="nf">do</span><span class="w">
-                                  </span><span class="c1">;; park for a little bit before polling again
-</span><span class="w">                                  </span><span class="p">(</span><span class="nf">&lt;!</span><span class="w"> </span><span class="p">(</span><span class="nf">as/timeout</span><span class="w"> </span><span class="p">(</span><span class="nf">park-time-fn</span><span class="p">)))</span><span class="w">
-                                  </span><span class="p">(</span><span class="nf">recur</span><span class="p">))</span><span class="w">
-                                </span><span class="p">(</span><span class="nf">recur</span><span class="p">)))</span><span class="w">
-          </span><span class="c1">;; HTTP GET timeout
-</span><span class="w">          </span><span class="p">(</span><span class="nb">=</span><span class="w"> </span><span class="n">c</span><span class="w"> </span><span class="n">time-out</span><span class="p">)</span><span class="w"> </span><span class="p">(</span><span class="nf">do</span><span class="w"> </span><span class="p">(</span><span class="nf">close!</span><span class="w"> </span><span class="n">c</span><span class="p">)</span><span class="w">
-                             </span><span class="p">(</span><span class="nf">recur</span><span class="p">)))))</span><span class="w">
-    </span><span class="n">out</span><span class="p">))</span></code></pre></figure>
+<figure class="highlight"><pre><code class="language-clojure" data-lang="clojure"><a name="line-1"></a><span class="p">(</span><span class="kd">defn </span><span class="nv">create-ticker-feed</span>
+<a name="line-2"></a>  <span class="p">[</span><span class="nv">ticker-url</span> <span class="o">&amp;</span> <span class="p">{</span><span class="ss">:keys</span> <span class="p">[</span><span class="nv">get-timeout</span> <span class="nv">async-put-timeout</span> <span class="nv">park-time-fn</span><span class="p">]</span> <span class="ss">:as</span> <span class="nv">params</span><span class="p">}]</span>
+<a name="line-3"></a>  <span class="p">(</span><span class="k">let </span><span class="p">[</span><span class="nv">out</span> <span class="p">(</span><span class="nf">chan</span><span class="p">)]</span>
+<a name="line-4"></a>    <span class="p">(</span><span class="nf">go-loop</span> <span class="p">[]</span>
+<a name="line-5"></a>      <span class="p">(</span><span class="k">let </span><span class="p">[</span><span class="nv">time-out</span> <span class="p">(</span><span class="nf">as/timeout</span> <span class="nv">get-timeout</span><span class="p">)</span>
+<a name="line-6"></a>            <span class="nv">ticker-poll</span> <span class="p">(</span><span class="nf">http-get</span> <span class="nv">ticker-url</span><span class="p">)</span>
+<a name="line-7"></a>            <span class="p">[</span><span class="nv">v</span> <span class="nv">c</span><span class="p">]</span> <span class="p">(</span><span class="nf">alts!</span> <span class="p">[</span><span class="nv">time-out</span> <span class="nv">ticker-poll</span><span class="p">])]</span>
+<a name="line-8"></a>        <span class="p">(</span><span class="nf">cond</span>
+<a name="line-9"></a>          <span class="p">(</span><span class="nb">= </span><span class="nv">c</span> <span class="nv">ticker-poll</span><span class="p">)</span> <span class="p">(</span><span class="k">let </span><span class="p">[[</span><span class="nv">_</span> <span class="nv">ch</span><span class="p">]</span> <span class="p">(</span><span class="nf">alts!</span> <span class="p">[[</span><span class="nv">out</span> <span class="nv">v</span><span class="p">]</span> <span class="p">(</span><span class="nf">as/timeout</span> <span class="nv">async-put-timeout</span><span class="p">)])]</span>
+<a name="line-10"></a>                              <span class="c1">;; If no-one is consuming the out channel, polls</span>
+<a name="line-11"></a>                              <span class="c1">;; the url again after some time.</span>
+<a name="line-12"></a>                              <span class="p">(</span><span class="k">if </span><span class="p">(</span><span class="nb">= </span><span class="nv">ch</span> <span class="nv">out</span><span class="p">)</span>
+<a name="line-13"></a>                                <span class="p">(</span><span class="nf">do</span>
+<a name="line-14"></a>                                  <span class="c1">;; park for a little bit before polling again</span>
+<a name="line-15"></a>                                  <span class="p">(</span><span class="nf">&lt;!</span> <span class="p">(</span><span class="nf">as/timeout</span> <span class="p">(</span><span class="nf">park-time-fn</span><span class="p">)))</span>
+<a name="line-16"></a>                                  <span class="p">(</span><span class="nf">recur</span><span class="p">))</span>
+<a name="line-17"></a>                                <span class="p">(</span><span class="nf">recur</span><span class="p">)))</span>
+<a name="line-18"></a>          <span class="c1">;; HTTP GET timeout</span>
+<a name="line-19"></a>          <span class="p">(</span><span class="nb">= </span><span class="nv">c</span> <span class="nv">time-out</span><span class="p">)</span> <span class="p">(</span><span class="k">do </span><span class="p">(</span><span class="nf">close!</span> <span class="nv">c</span><span class="p">)</span>
+<a name="line-20"></a>                             <span class="p">(</span><span class="nf">recur</span><span class="p">)))))</span>
+<a name="line-21"></a>    <span class="nv">out</span><span class="p">))</span></code></pre></figure>
 
-<p>There are a few options for <code class="highlighter-rouge">create-ticket-feed</code> function. They are all related
+<p>There are a few options for <code>create-ticket-feed</code> function. They are all related
 to timings, because different sources have different timing restrictions when
 polling. The timing restrictions are set in place, in order to prevent abuse. If
-the <code class="highlighter-rouge">go</code> block polls a source too frequently, it may get banned by the source.
+the <code>go</code> block polls a source too frequently, it may get banned by the source.
 The options are:</p>
 
 <dl>
-  <dt><code class="highlighter-rouge">:get-timeout</code></dt>
+  <dt><code>:get-timeout</code></dt>
   <dd>The time it waits for a reply from the GET request before retrying (in ms).</dd>
-  <dt><code class="highlighter-rouge">:async-put-timeout</code></dt>
+  <dt><code>:async-put-timeout</code></dt>
   <dd>The time it waits for a consumer to consume the value (in ms).</dd>
-  <dt><code class="highlighter-rouge">:park-time-fn</code></dt>
+  <dt><code>:park-time-fn</code></dt>
   <dd>A function that returns an integer (in ms). The integer will be used as the
-park time before the <code class="highlighter-rouge">go</code> block re-polls the ticker url again. This is dictated by the
+park time before the <code>go</code> block re-polls the ticker url again. This is dictated by the
 source’s timing restriction.</dd>
 </dl>
 
 <p>To create a feed from, say, <a href="https://campbx.com">CampBx</a>.</p>
 
-<figure class="highlight"><pre><code class="language-clojure" data-lang="clojure"><span class="p">(</span><span class="nf">create-ticker-feed</span><span class="w">
-  </span><span class="s">"http://campbx.com/api/xticker.php"</span><span class="w">
-  </span><span class="c1">;; GET request timed out after 30s
-</span><span class="w">  </span><span class="no">:get-timeout</span><span class="w"> </span><span class="mi">30000</span><span class="w">
-  </span><span class="c1">;; If no process is consuming the out channel, re-poll
-</span><span class="w">  </span><span class="no">:async-put-timeout</span><span class="w"> </span><span class="mi">10000</span><span class="w">
-  </span><span class="c1">;; Wait at least 1s between each poll
-</span><span class="w">  </span><span class="c1">;; rand-int is to introduce some variance
-</span><span class="w">  </span><span class="no">:park-time-fn</span><span class="w"> </span><span class="o">#</span><span class="p">(</span><span class="nb">+</span><span class="w"> </span><span class="mi">1000</span><span class="w"> </span><span class="p">(</span><span class="nb">rand-int</span><span class="w"> </span><span class="mi">1500</span><span class="p">)))</span></code></pre></figure>
+<figure class="highlight"><pre><code class="language-clojure" data-lang="clojure"><a name="line-1"></a><span class="p">(</span><span class="nf">create-ticker-feed</span>
+<a name="line-2"></a>  <span class="s">&quot;http://campbx.com/api/xticker.php&quot;</span>
+<a name="line-3"></a>  <span class="c1">;; GET request timed out after 30s</span>
+<a name="line-4"></a>  <span class="ss">:get-timeout</span> <span class="mi">30000</span>
+<a name="line-5"></a>  <span class="c1">;; If no process is consuming the out channel, re-poll</span>
+<a name="line-6"></a>  <span class="ss">:async-put-timeout</span> <span class="mi">10000</span>
+<a name="line-7"></a>  <span class="c1">;; Wait at least 1s between each poll</span>
+<a name="line-8"></a>  <span class="c1">;; rand-int is to introduce some variance</span>
+<a name="line-9"></a>  <span class="ss">:park-time-fn</span> <span class="o">#</span><span class="p">(</span><span class="nb">+ </span><span class="mi">1000</span> <span class="p">(</span><span class="nb">rand-int </span><span class="mi">1500</span><span class="p">)))</span></code></pre></figure>
 
 <h4 id="publishing-feeds">Publishing feeds</h4>
-<p>The return value for <code class="highlighter-rouge">create-ticker-feed</code> is a channel. From that channel, a
+<p>The return value for <code>create-ticker-feed</code> is a channel. From that channel, a
 consumer can acquire the market data and then perform whatever action it needs
 to perform. In the publisher’s case, whenever it receives any market data, it
 will publish the data out to a topic exchange of a RabbitMQ instance.  Actually,
@@ -152,16 +152,16 @@ the publisher I implemented does a little bit more. All the data that it
 receives from the channel get passed through a function (using
 <a href="http://clojure.github.io/core.async/#clojure.core.async/map&lt;">mapv&lt;</a>). The
 function is used to clean up the market data. One example for such function is
-to transform all the string keys into Clojure <code class="highlighter-rouge">keywords</code>.</p>
+to transform all the string keys into Clojure <code>keywords</code>.</p>
 
 <h4 id="subscribing-to-feeds">Subscribing to feeds</h4>
 <p>As described earilier, the data will be published to a RabbitMQ’s topic
-exchange. Each feed will have the routing key of the form <code class="highlighter-rouge">ticker.$feedname</code>.
+exchange. Each feed will have the routing key of the form <code>ticker.$feedname</code>.
 So, to subscribe to the <a href="https://campbx.com">CampBx</a> feed, you will need to
-subscribe to <code class="highlighter-rouge">ticker.campbx</code>. Moreover, if you want to subscribe to all feeds,
-then you will need to subscribe to <code class="highlighter-rouge">ticker.#</code>.
+subscribe to <code>ticker.campbx</code>. Moreover, if you want to subscribe to all feeds,
+then you will need to subscribe to <code>ticker.#</code>.
 <a href="https://github.com/marcoy/bitpub">Bitpub</a> comes a basic consumer the subscribe
-to all feeds, and dump all the data out to <code class="highlighter-rouge">STDOUT</code>.</p>
+to all feeds, and dump all the data out to <code>STDOUT</code>.</p>
 
 <h4 id="final-words">Final words</h4>
 <p>One of the other reasons why I started
