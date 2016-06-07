@@ -3,3 +3,4 @@
  - FreeT and Data.Functor.Sum
  - contrafunctor
  - SBV
+ - Eff Monad in Scala or Haskell
