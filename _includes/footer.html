@@ -24,6 +24,12 @@
           </li>
           {% endif %}
 
+          {% if site.gitlab_username %}
+          <li>
+            {% include icon-gitlab.html username=site.gitlab_username %}
+          </li>
+          {% endif %}
+
           {% if site.twitter_username %}
           <li>
             {% include icon-linkedin.html username=site.linkedin_username %}
