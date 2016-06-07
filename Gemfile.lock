@@ -47,6 +47,7 @@ DEPENDENCIES
   jekyll-asciidoc
   jekyll-paginate
   pygments.rb
+  rouge
 
 BUNDLED WITH
    1.12.5
