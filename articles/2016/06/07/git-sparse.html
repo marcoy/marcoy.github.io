@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html>
+
+  <head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <title>Streamlining Git Sparse Checkout with git-sparse</title>
+  <meta name="description" content="">
+  <link href='https://fonts.googleapis.com/css?family=PT+Sans:400,700,400italic,700italic' rel='stylesheet' type='text/css'>
+  <link href='https://fonts.googleapis.com/css?family=Source+Sans+Pro:400,700,200,300' rel='stylesheet' type='text/css'>
+  <link href='https://fonts.googleapis.com/css?family=Josefin+Sans:400,600,700,300' rel='stylesheet' type='text/css'>
+
+  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.6.3/css/font-awesome.min.css">
+  <link rel="stylesheet" href="/css/style.css">
+  <link rel="stylesheet" href="/css/asciidoctor.css">
+  <link rel="canonical" href="http://www.marcoyuen.com/articles/2016/06/07/git-sparse.html">
+  <link rel="alternate" type="application/rss+xml" title="Marco Yuen" href="http://www.marcoyuen.com/feed.xml">
+</head>
+
+
+  <body>
+
+    
+<div class="wrapper">
+  <center><div class="site-title">Marco Yuen</div></center>
+</div>
+<div class="wrapper site-description">
+  <center>Life and Programming</center>
+</div>
+<div class="wrapper">
+  <div class="trigger site-navigation">
+    <center>
+      <a class="page-link" href="/index.html">HOME</a>
+      
+        
+          <span class="exclamationMark">/</span><a class="page-link" href="/about/">About</a>
+        
+      
+        
+      
+        
+      
+        
+          <span class="exclamationMark">/</span><a class="page-link" href="/resume/">Resume</a>
+        
+      
+        
+      
+    </center>
+  </div>
+</div>
+
+
+    <div class="page-content">
+      <div class="wrapper">
+        <article class="post" itemscope itemtype="http://schema.org/BlogPosting">
+  <header class="post-header">
+    <h1 class="post-title" itemprop="name headline">Streamlining Git Sparse Checkout with git-sparse</h1>
+    <center>
+      <p class="post-meta">
+        <time datetime="2016-06-07T00:00:00-04:00" itemprop="datePublished">Jun 07, 2016</time>
+      </p>
+      
+    </center>
+  </header>
+
+  <div class="post-content" itemprop="articleBody">
+    <div class="sect1">
+<h2 id="_sparse-what">Sparse What?</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>Sparse checkout is probably not a well used feature in git.
+In a nutshell, the feature allows one to checkout only certain subdirectories in a git repository.
+For the most part, I don&#8217;t envision people use this feature much.
+The only reason why I use the git sparse checkout feature is because of work.</p>
+</div>
+<div class="paragraph">
+<p>At work, we use <a href="https://en.wikipedia.org/wiki/Apache_Subversion">Subversion</a> as the VCS (imagine my horror)<sup class="footnote">[<a id="_footnoteref_1" class="footnote" href="#_footnote_1" title="View footnote.">1</a>]</sup>.
+The SVN repository layout follows the standard recommended layout (e.g. <code>trunk</code>, <code>branches</code>, and <code>tags</code>).
+There are upwards of 30+ codebases under <code>trunk</code>, and most of the time I only have to work with a handful
+of the codebases.
+Since it has been a long time since I use Subversion, I decided to use <code>git svn</code> rather than vanilla
+Subversion.</p>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_normal-sparse-checkout-workflow">Normal Sparse Checkout Workflow</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>The sparse checkout feature is not enabled by default, one needs to enable it first.
+So use the following the command to enable sparse checkout</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="pygments highlight"><code data-lang="sh">&gt;<span style="color: #19177C">$ </span>git config core.sparsecheckout <span style="color: #008000">true</span> <i class="conum" data-value="1"></i><b>(1)</b></code></pre>
+</div>
+</div>
+<div class="colist arabic">
+<table>
+<tr>
+<td><i class="conum" data-value="1"></i><b>1</b></td>
+<td>Only enable sparse checkout in the current git repository</td>
+</tr>
+</table>
+</div>
+<div class="paragraph">
+<p>Once it is enabled, create a file called <code>sparse-checkout</code> in <code>$GITDIR/info</code>.
+For the most part, <code>$GITDIR</code> is <code>.git</code>, but that is not always the case especially if one uses the
+<a href="https://git-scm.com/docs/git-worktree">git worktree</a> feature.
+The content of the <code>sparse-checkout</code> file is where one specifies the subdirectories to checkout in the working
+tree.
+Then, use the following command to update the working tree, or get rid of the subdirectories you do not want.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="pygments highlight"><code data-lang="sh">&gt;<span style="color: #19177C">$ </span>git <span style="color: #008000">read</span>-tree -mu HEAD</code></pre>
+</div>
+</div>
+<div id="sparse-checkout-steps" class="paragraph">
+<p>To summarize the steps:</p>
+</div>
+<div class="olist arabic">
+<ol class="arabic">
+<li>
+<p>Enable git sparse out</p>
+</li>
+<li>
+<p>Create a file, <code>sparse-checkout</code>, inside <code>$GITDIR</code></p>
+</li>
+<li>
+<p>Edit and specify the subdirectories in <code>sparse-checkout</code></p>
+</li>
+<li>
+<p>Run <code>read-tree</code> to update the working tree</p>
+</li>
+</ol>
+</div>
+<div class="paragraph">
+<p>As you can see the workflow is quite clunky.
+Especially, when I want to checkout a new subdirectory or un-checkout one of the subdirectories in my current
+working tree.
+I need to navigate to <code>$GITDIR/info/sparse-checkout</code> and edit its content.
+That is quite inconvenient because I use <a href="https://git-scm.com/docs/git-worktree">git worktree</a> a lot, and the <code>$GITDIR</code> is somewhere else altogether.</p>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_streamlining-the-workflow">Streamlining the Workflow</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>As outlined <a href="#sparse-checkout-steps">above</a>, getting sparse checkout working is clunky but very mechanical.
+As most developers do when facing mundane tasks, I decide to automate the steps.
+I create a custom git command to make my life easier.</p>
+</div>
+<div class="admonitionblock note">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-note" title="Note"></i>
+</td>
+<td class="content">
+<div class="paragraph">
+<p>Creating a custom git command is very simple.
+Place an executable with name git-<em>&lt;command&gt;</em> in your <code>$PATH</code>.</p>
+</div>
+</td>
+</tr>
+</table>
+</div>
+<div class="paragraph">
+<p>The custom command I created is called <code>git-sparse</code>,
+it performs <a href="#sparse-checkout-steps">steps 1-3</a> outlined in the previous section.</p>
+</div>
+<div class="paragraph">
+<p>Using <code>git-sparse</code> is simple.
+Navigate to the git repository, then run <code>git sparse</code> in the terminal.
+The first thing it does is to turn on sparse checkout feature,
+then use git to determine the correct location of <code>$GITDIR</code>,
+so <code>git-sparse</code> works with <a href="https://git-scm.com/docs/git-worktree">git worktree</a>.
+Finally, it opens up an editor, so you can immediately start editing the <code>sparse-checkout</code> file.
+The last step which <code>git-sparse</code> does <strong>not</strong> do for you is running the <code>read-tree</code> command.
+You can see <code>git-sparse</code> in action in the following animated GIF.</p>
+</div>
+<div class="imageblock" style="text-align: center;float: right">
+<div class="content">
+<img src="/images/git-sparse.gif" alt="git sparse" width="700" height="500">
+</div>
+</div>
+<div class="sect2">
+<h3 id="_subcommand">Subcommand</h3>
+<div class="paragraph">
+<p>There is a subcommand to <code>git-sparse</code>, <code>add</code>.
+The <code>add</code> subcommand is a convenient way to add subdirectories or files to <code>sparse-checkout</code> file.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="pygments highlight"><code data-lang="sh">&gt;<span style="color: #19177C">$ </span>git sparse add <span style="color: #19177C">$subdir1</span> <span style="color: #19177C">$subdir2</span> <span style="color: #19177C">$file1</span></code></pre>
+</div>
+</div>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_implementation">Implementation</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>I do not want to dive into details about the implementation in this post,
+because I plan on writing a few technical posts about how <code>git-sparse</code> is implemented.
+To keep this short, <code>git-sparse</code> is written in Haskell.
+While it can be easily implemented using Shell scripts or any other scripting languages,
+implementing it in Haskell gives me a chance to write more software using a functional programming language,
+and I want to get some practice in for Haskell.
+I thought about using Clojure, but the startup time will be too slow.</p>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_building-and-installing">Building and installing</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>Haskell <a href="http://docs.haskellstack.org/en/stable/README/">stack</a> is required to build <code>git-sparse</code>.
+Once <a href="http://docs.haskellstack.org/en/stable/README/">stack</a> is installed, clone the <a href="https://gitlab.com/marcoy/git-sparse">git-sparse</a> repository.
+At the root of the repository, run <code>stack install</code>.
+Stack will build and install an executable called <code>git-sparse</code> in <code>$HOME/.local/bin</code>.
+Finally, make sure to add <code>$HOME/.local/bin</code> to your <code>$PATH</code> environment variable.</p>
+</div>
+</div>
+</div>
+<div id="footnotes">
+<hr>
+<div class="footnote" id="_footnote_1">
+<a href="#_footnoteref_1">1</a>. SVN is not a right tool when coupled with the company development culture
+</div>
+</div>
+  </div>
+</article>
+
+      </div>
+    </div>
+
+    <footer class="site-footer">
+
+  <div class="wrapper">
+
+    <h2 class="footer-heading small-site-title">Marco Yuen</h2>
+
+    <div class="footer-col-wrapper">
+      <div class="footer-col footer-col-1">
+        <ul class="contact-list footer-content">
+          <li>Powered By
+            <a href="https://jekyllrb.com/">Jekyll</a>
+          </li>
+          <li>
+            using <a href="http://github.com/hemangsk/Gravity">Gravity</a>
+          </li>
+        </ul>
+      </div>
+
+      <div class="footer-col footer-col-2 footer-content">
+        <ul class="social-media-list">
+          
+          <li>
+            <a href="https://github.com/marcoy"><span class="fa fa-github-alt fa-lg fa-fw"></span><span class="username">marcoy</span></a>
+
+          </li>
+          
+
+          
+          <li>
+            <a href="https://gitlab.com/marcoy"><span class="fa fa-gitlab fa-lg fa-fw"></span><span class="username">marcoy</span></a>
+
+          </li>
+          
+
+          
+          <li>
+            <a href="https://www.linkedin.com/in/marcoyuen"><span class="fa fa-linkedin fa-lg fa-fw"></span><span class="username">marcoyuen</span></a>
+
+          </li>
+          
+
+          
+          <li>
+            <a href="https://twitter.com/marcoyyk"><span class="fa fa-twitter fa-lg fa-fw"></span><span class="username">marcoyyk</span></a>
+
+          </li>
+          
+        </ul>
+      </div>
+
+      <div class="footer-col footer-col-3 site-description">
+        <p>Life and Programming</p>
+      </div>
+    </div>
+
+  </div>
+
+</footer>
+
+
+  </body>
+
+</html>

@@ -5,9 +5,190 @@
     <description>Life and Programming</description>
     <link>http://www.marcoyuen.com/</link>
     <atom:link href="http://www.marcoyuen.com/feed.xml" rel="self" type="application/rss+xml"/>
-    <pubDate>Tue, 07 Jun 2016 18:48:07 -0400</pubDate>
-    <lastBuildDate>Tue, 07 Jun 2016 18:48:07 -0400</lastBuildDate>
+    <pubDate>Tue, 07 Jun 2016 19:07:45 -0400</pubDate>
+    <lastBuildDate>Tue, 07 Jun 2016 19:07:45 -0400</lastBuildDate>
     <generator>Jekyll v3.1.6</generator>
+    
+      <item>
+        <title>Streamlining Git Sparse Checkout with git-sparse</title>
+        <description>&lt;div class=&quot;sect1&quot;&gt;
+&lt;h2 id=&quot;_sparse-what&quot;&gt;Sparse What?&lt;/h2&gt;
+&lt;div class=&quot;sectionbody&quot;&gt;
+&lt;div class=&quot;paragraph&quot;&gt;
+&lt;p&gt;Sparse checkout is probably not a well used feature in git.
+In a nutshell, the feature allows one to checkout only certain subdirectories in a git repository.
+For the most part, I don&amp;#8217;t envision people use this feature much.
+The only reason why I use the git sparse checkout feature is because of work.&lt;/p&gt;
+&lt;/div&gt;
+&lt;div class=&quot;paragraph&quot;&gt;
+&lt;p&gt;At work, we use &lt;a href=&quot;https://en.wikipedia.org/wiki/Apache_Subversion&quot;&gt;Subversion&lt;/a&gt; as the VCS (imagine my horror)&lt;sup class=&quot;footnote&quot;&gt;[&lt;a id=&quot;_footnoteref_1&quot; class=&quot;footnote&quot; href=&quot;#_footnote_1&quot; title=&quot;View footnote.&quot;&gt;1&lt;/a&gt;]&lt;/sup&gt;.
+The SVN repository layout follows the standard recommended layout (e.g. &lt;code&gt;trunk&lt;/code&gt;, &lt;code&gt;branches&lt;/code&gt;, and &lt;code&gt;tags&lt;/code&gt;).
+There are upwards of 30+ codebases under &lt;code&gt;trunk&lt;/code&gt;, and most of the time I only have to work with a handful
+of the codebases.
+Since it has been a long time since I use Subversion, I decided to use &lt;code&gt;git svn&lt;/code&gt; rather than vanilla
+Subversion.&lt;/p&gt;
+&lt;/div&gt;
+&lt;/div&gt;
+&lt;/div&gt;
+&lt;div class=&quot;sect1&quot;&gt;
+&lt;h2 id=&quot;_normal-sparse-checkout-workflow&quot;&gt;Normal Sparse Checkout Workflow&lt;/h2&gt;
+&lt;div class=&quot;sectionbody&quot;&gt;
+&lt;div class=&quot;paragraph&quot;&gt;
+&lt;p&gt;The sparse checkout feature is not enabled by default, one needs to enable it first.
+So use the following the command to enable sparse checkout&lt;/p&gt;
+&lt;/div&gt;
+&lt;div class=&quot;listingblock&quot;&gt;
+&lt;div class=&quot;content&quot;&gt;
+&lt;pre class=&quot;pygments highlight&quot;&gt;&lt;code data-lang=&quot;sh&quot;&gt;&amp;gt;&lt;span style=&quot;color: #19177C&quot;&gt;$ &lt;/span&gt;git config core.sparsecheckout &lt;span style=&quot;color: #008000&quot;&gt;true&lt;/span&gt; &lt;i class=&quot;conum&quot; data-value=&quot;1&quot;&gt;&lt;/i&gt;&lt;b&gt;(1)&lt;/b&gt;&lt;/code&gt;&lt;/pre&gt;
+&lt;/div&gt;
+&lt;/div&gt;
+&lt;div class=&quot;colist arabic&quot;&gt;
+&lt;table&gt;
+&lt;tr&gt;
+&lt;td&gt;&lt;i class=&quot;conum&quot; data-value=&quot;1&quot;&gt;&lt;/i&gt;&lt;b&gt;1&lt;/b&gt;&lt;/td&gt;
+&lt;td&gt;Only enable sparse checkout in the current git repository&lt;/td&gt;
+&lt;/tr&gt;
+&lt;/table&gt;
+&lt;/div&gt;
+&lt;div class=&quot;paragraph&quot;&gt;
+&lt;p&gt;Once it is enabled, create a file called &lt;code&gt;sparse-checkout&lt;/code&gt; in &lt;code&gt;$GITDIR/info&lt;/code&gt;.
+For the most part, &lt;code&gt;$GITDIR&lt;/code&gt; is &lt;code&gt;.git&lt;/code&gt;, but that is not always the case especially if one uses the
+&lt;a href=&quot;https://git-scm.com/docs/git-worktree&quot;&gt;git worktree&lt;/a&gt; feature.
+The content of the &lt;code&gt;sparse-checkout&lt;/code&gt; file is where one specifies the subdirectories to checkout in the working
+tree.
+Then, use the following command to update the working tree, or get rid of the subdirectories you do not want.&lt;/p&gt;
+&lt;/div&gt;
+&lt;div class=&quot;listingblock&quot;&gt;
+&lt;div class=&quot;content&quot;&gt;
+&lt;pre class=&quot;pygments highlight&quot;&gt;&lt;code data-lang=&quot;sh&quot;&gt;&amp;gt;&lt;span style=&quot;color: #19177C&quot;&gt;$ &lt;/span&gt;git &lt;span style=&quot;color: #008000&quot;&gt;read&lt;/span&gt;-tree -mu HEAD&lt;/code&gt;&lt;/pre&gt;
+&lt;/div&gt;
+&lt;/div&gt;
+&lt;div id=&quot;sparse-checkout-steps&quot; class=&quot;paragraph&quot;&gt;
+&lt;p&gt;To summarize the steps:&lt;/p&gt;
+&lt;/div&gt;
+&lt;div class=&quot;olist arabic&quot;&gt;
+&lt;ol class=&quot;arabic&quot;&gt;
+&lt;li&gt;
+&lt;p&gt;Enable git sparse out&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;Create a file, &lt;code&gt;sparse-checkout&lt;/code&gt;, inside &lt;code&gt;$GITDIR&lt;/code&gt;&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;Edit and specify the subdirectories in &lt;code&gt;sparse-checkout&lt;/code&gt;&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;Run &lt;code&gt;read-tree&lt;/code&gt; to update the working tree&lt;/p&gt;
+&lt;/li&gt;
+&lt;/ol&gt;
+&lt;/div&gt;
+&lt;div class=&quot;paragraph&quot;&gt;
+&lt;p&gt;As you can see the workflow is quite clunky.
+Especially, when I want to checkout a new subdirectory or un-checkout one of the subdirectories in my current
+working tree.
+I need to navigate to &lt;code&gt;$GITDIR/info/sparse-checkout&lt;/code&gt; and edit its content.
+That is quite inconvenient because I use &lt;a href=&quot;https://git-scm.com/docs/git-worktree&quot;&gt;git worktree&lt;/a&gt; a lot, and the &lt;code&gt;$GITDIR&lt;/code&gt; is somewhere else altogether.&lt;/p&gt;
+&lt;/div&gt;
+&lt;/div&gt;
+&lt;/div&gt;
+&lt;div class=&quot;sect1&quot;&gt;
+&lt;h2 id=&quot;_streamlining-the-workflow&quot;&gt;Streamlining the Workflow&lt;/h2&gt;
+&lt;div class=&quot;sectionbody&quot;&gt;
+&lt;div class=&quot;paragraph&quot;&gt;
+&lt;p&gt;As outlined &lt;a href=&quot;#sparse-checkout-steps&quot;&gt;above&lt;/a&gt;, getting sparse checkout working is clunky but very mechanical.
+As most developers do when facing mundane tasks, I decide to automate the steps.
+I create a custom git command to make my life easier.&lt;/p&gt;
+&lt;/div&gt;
+&lt;div class=&quot;admonitionblock note&quot;&gt;
+&lt;table&gt;
+&lt;tr&gt;
+&lt;td class=&quot;icon&quot;&gt;
+&lt;i class=&quot;fa icon-note&quot; title=&quot;Note&quot;&gt;&lt;/i&gt;
+&lt;/td&gt;
+&lt;td class=&quot;content&quot;&gt;
+&lt;div class=&quot;paragraph&quot;&gt;
+&lt;p&gt;Creating a custom git command is very simple.
+Place an executable with name git-&lt;em&gt;&amp;lt;command&amp;gt;&lt;/em&gt; in your &lt;code&gt;$PATH&lt;/code&gt;.&lt;/p&gt;
+&lt;/div&gt;
+&lt;/td&gt;
+&lt;/tr&gt;
+&lt;/table&gt;
+&lt;/div&gt;
+&lt;div class=&quot;paragraph&quot;&gt;
+&lt;p&gt;The custom command I created is called &lt;code&gt;git-sparse&lt;/code&gt;,
+it performs &lt;a href=&quot;#sparse-checkout-steps&quot;&gt;steps 1-3&lt;/a&gt; outlined in the previous section.&lt;/p&gt;
+&lt;/div&gt;
+&lt;div class=&quot;paragraph&quot;&gt;
+&lt;p&gt;Using &lt;code&gt;git-sparse&lt;/code&gt; is simple.
+Navigate to the git repository, then run &lt;code&gt;git sparse&lt;/code&gt; in the terminal.
+The first thing it does is to turn on sparse checkout feature,
+then use git to determine the correct location of &lt;code&gt;$GITDIR&lt;/code&gt;,
+so &lt;code&gt;git-sparse&lt;/code&gt; works with &lt;a href=&quot;https://git-scm.com/docs/git-worktree&quot;&gt;git worktree&lt;/a&gt;.
+Finally, it opens up an editor, so you can immediately start editing the &lt;code&gt;sparse-checkout&lt;/code&gt; file.
+The last step which &lt;code&gt;git-sparse&lt;/code&gt; does &lt;strong&gt;not&lt;/strong&gt; do for you is running the &lt;code&gt;read-tree&lt;/code&gt; command.
+You can see &lt;code&gt;git-sparse&lt;/code&gt; in action in the following animated GIF.&lt;/p&gt;
+&lt;/div&gt;
+&lt;div class=&quot;imageblock&quot; style=&quot;text-align: center;float: right&quot;&gt;
+&lt;div class=&quot;content&quot;&gt;
+&lt;img src=&quot;/images/git-sparse.gif&quot; alt=&quot;git sparse&quot; width=&quot;700&quot; height=&quot;500&quot;&gt;
+&lt;/div&gt;
+&lt;/div&gt;
+&lt;div class=&quot;sect2&quot;&gt;
+&lt;h3 id=&quot;_subcommand&quot;&gt;Subcommand&lt;/h3&gt;
+&lt;div class=&quot;paragraph&quot;&gt;
+&lt;p&gt;There is a subcommand to &lt;code&gt;git-sparse&lt;/code&gt;, &lt;code&gt;add&lt;/code&gt;.
+The &lt;code&gt;add&lt;/code&gt; subcommand is a convenient way to add subdirectories or files to &lt;code&gt;sparse-checkout&lt;/code&gt; file.&lt;/p&gt;
+&lt;/div&gt;
+&lt;div class=&quot;listingblock&quot;&gt;
+&lt;div class=&quot;content&quot;&gt;
+&lt;pre class=&quot;pygments highlight&quot;&gt;&lt;code data-lang=&quot;sh&quot;&gt;&amp;gt;&lt;span style=&quot;color: #19177C&quot;&gt;$ &lt;/span&gt;git sparse add &lt;span style=&quot;color: #19177C&quot;&gt;$subdir1&lt;/span&gt; &lt;span style=&quot;color: #19177C&quot;&gt;$subdir2&lt;/span&gt; &lt;span style=&quot;color: #19177C&quot;&gt;$file1&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;
+&lt;/div&gt;
+&lt;/div&gt;
+&lt;/div&gt;
+&lt;/div&gt;
+&lt;/div&gt;
+&lt;div class=&quot;sect1&quot;&gt;
+&lt;h2 id=&quot;_implementation&quot;&gt;Implementation&lt;/h2&gt;
+&lt;div class=&quot;sectionbody&quot;&gt;
+&lt;div class=&quot;paragraph&quot;&gt;
+&lt;p&gt;I do not want to dive into details about the implementation in this post,
+because I plan on writing a few technical posts about how &lt;code&gt;git-sparse&lt;/code&gt; is implemented.
+To keep this short, &lt;code&gt;git-sparse&lt;/code&gt; is written in Haskell.
+While it can be easily implemented using Shell scripts or any other scripting languages,
+implementing it in Haskell gives me a chance to write more software using a functional programming language,
+and I want to get some practice in for Haskell.
+I thought about using Clojure, but the startup time will be too slow.&lt;/p&gt;
+&lt;/div&gt;
+&lt;/div&gt;
+&lt;/div&gt;
+&lt;div class=&quot;sect1&quot;&gt;
+&lt;h2 id=&quot;_building-and-installing&quot;&gt;Building and installing&lt;/h2&gt;
+&lt;div class=&quot;sectionbody&quot;&gt;
+&lt;div class=&quot;paragraph&quot;&gt;
+&lt;p&gt;Haskell &lt;a href=&quot;http://docs.haskellstack.org/en/stable/README/&quot;&gt;stack&lt;/a&gt; is required to build &lt;code&gt;git-sparse&lt;/code&gt;.
+Once &lt;a href=&quot;http://docs.haskellstack.org/en/stable/README/&quot;&gt;stack&lt;/a&gt; is installed, clone the &lt;a href=&quot;https://gitlab.com/marcoy/git-sparse&quot;&gt;git-sparse&lt;/a&gt; repository.
+At the root of the repository, run &lt;code&gt;stack install&lt;/code&gt;.
+Stack will build and install an executable called &lt;code&gt;git-sparse&lt;/code&gt; in &lt;code&gt;$HOME/.local/bin&lt;/code&gt;.
+Finally, make sure to add &lt;code&gt;$HOME/.local/bin&lt;/code&gt; to your &lt;code&gt;$PATH&lt;/code&gt; environment variable.&lt;/p&gt;
+&lt;/div&gt;
+&lt;/div&gt;
+&lt;/div&gt;
+&lt;div id=&quot;footnotes&quot;&gt;
+&lt;hr&gt;
+&lt;div class=&quot;footnote&quot; id=&quot;_footnote_1&quot;&gt;
+&lt;a href=&quot;#_footnoteref_1&quot;&gt;1&lt;/a&gt;. SVN is not a right tool when coupled with the company development culture
+&lt;/div&gt;
+&lt;/div&gt;</description>
+        <pubDate>Tue, 07 Jun 2016 00:00:00 -0400</pubDate>
+        <link>http://www.marcoyuen.com/articles/2016/06/07/git-sparse.html</link>
+        <guid isPermaLink="true">http://www.marcoyuen.com/articles/2016/06/07/git-sparse.html</guid>
+        
+        <category>git, haskell</category>
+        
+        
+        <category>articles</category>
+        
+      </item>
     
       <item>
         <title>Some Updates</title>
