@@ -2,9 +2,8 @@ language: ruby
 script: "./build.sh"
 install:
   - sudo pip install pygments
-  - bundler list
+  - gem install jekyll asciidoctor jekyll-asciidoc jekyll-paginate pygments.rb rouge
   - bundler install
-  # - gem install jekyll asciidoctor jekyll-asciidoc jekyll-paginate pygments.rb
 branches:
   only:
     - jekyll-gravity
