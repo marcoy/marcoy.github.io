@@ -1,11 +1,12 @@
-= Streamlining Git Sparse Checkout
+= Streamlining Git Sparse Checkout with git-sparse
 :page-layout: post
 :page-categories: articles
 :page-tags: git, haskell
 
 :svn-wiki: https://en.wikipedia.org/wiki/Apache_Subversion[Subversion]
 :worktree-doc: https://git-scm.com/docs/git-worktree[git worktree]
-:gitsparse: git-sparse
+:stack: http://docs.haskellstack.org/en/stable/README/[stack]
+:gitsparse: https://gitlab.com/marcoy/git-sparse[git-sparse]
 
 == Sparse What?
 Sparse checkout is probably not a well used feature in git.
@@ -91,11 +92,18 @@ The `add` subcommand is a convenient way to add subdirectories or files to `spar
 >$ git sparse add $subdir1 $subdir2 $file1
 ----
 
-=== Implementation
+== Implementation
 I do not want to dive into details about the implementation in this post,
-because I plan on writing a technical post about `git-sparse`.
+because I plan on writing a few technical posts about how `git-sparse` is implemented.
 To keep this short, `git-sparse` is written in Haskell.
 While it can be easily implemented using Shell scripts or any other scripting languages,
 implementing it in Haskell gives me a chance to write more software using a functional programming language,
 and I want to get some practice in for Haskell.
 I thought about using Clojure, but the startup time will be too slow.
+
+== Building and installing
+Haskell {stack} is required to build `git-sparse`.
+Once {stack} is installed, clone the {gitsparse} repository.
+At the root of the repository, run `stack install`.
+Stack will build and install an executable called `git-sparse` in `$HOME/.local/bin`.
+Finally, make sure to add `$HOME/.local/bin` to your `$PATH` environment variable.
