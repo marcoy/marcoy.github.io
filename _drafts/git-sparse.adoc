@@ -84,7 +84,7 @@ image::/images/git-sparse.gif[width="700",height="500",align="center", float="ri
 
 === Subcommand
 There is a subcommand to `git-sparse`, `add`.
-The `add` subcommand is a convenient way to add subdirectories or files to `sparse-checkout`.
+The `add` subcommand is a convenient way to add subdirectories or files to `sparse-checkout` file.
 
 [source,sh]
 ----
