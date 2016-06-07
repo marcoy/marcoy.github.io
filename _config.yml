@@ -33,3 +33,4 @@ exclude:
     - Gemfile.lock
     - LICENSE.txt
     - build.sh
+    - ideas.adoc

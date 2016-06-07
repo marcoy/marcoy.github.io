@@ -1,0 +1,5 @@
+= Ideas
+
+ - FreeT and Data.Functor.Sum
+ - contrafunctor
+ - SBV
