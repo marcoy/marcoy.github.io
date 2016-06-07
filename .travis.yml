@@ -1,7 +1,7 @@
 language: ruby
 script: "./build.sh"
 install:
-  - pip install pygments
+  - pip install --user pygments
   - gem install jekyll asciidoctor jekyll-asciidoc jekyll-paginate pygments.rb
 branches:
   only:
