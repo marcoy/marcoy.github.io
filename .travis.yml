@@ -1,6 +1,6 @@
 language: ruby
 script: "./build.sh"
-install: gem install jekyll asciidoctor jekyll-asciidoc jekyll-paginate pygments.rb
+install: gem install jekyll asciidoctor jekyll-asciidoc jekyll-paginate pygments.rb rouge
 branches:
   only:
     - jekyll-gravity
