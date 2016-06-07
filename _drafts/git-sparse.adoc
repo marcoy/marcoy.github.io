@@ -77,4 +77,25 @@ The first thing it does is to turn on sparse checkout feature,
 then use git to determine the correct location of `$GITDIR`,
 so `git-sparse` works with {worktree-doc}.
 Finally, it opens up an editor, so you can immediately start editing the `sparse-checkout` file.
-The final step which `git-sparse` does not do for you is running the `read-tree` command.
+The last step which `git-sparse` does *not* do for you is running the `read-tree` command.
+You can see `git-sparse` in action in the following animated GIF.
+
+image::/images/git-sparse.gif[width="700",height="500",align="center", float="right"]
+
+=== Subcommand
+There is a subcommand to `git-sparse`, `add`.
+The `add` subcommand is a convenient way to add subdirectories or files to `sparse-checkout`.
+
+[source,sh]
+----
+>$ git sparse add $subdir1 $subdir2 $file1
+----
+
+=== Implementation
+I do not want to dive into details about the implementation in this post,
+because I plan on writing a technical post about `git-sparse`.
+To keep this short, `git-sparse` is written in Haskell.
+While it can be easily implemented using Shell scripts or any other scripting languages,
+implementing it in Haskell gives me a chance to write more software using a functional programming language,
+and I want to get some practice in for Haskell.
+I thought about using Clojure, but the startup time will be too slow.
