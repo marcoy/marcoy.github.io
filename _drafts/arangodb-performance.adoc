@@ -1,0 +1,21 @@
+= ArangoDB Performance Pecularites
+:page-layout: post
+:page-categories: artices
+:page-tags: arangodb, performance, graph database
+
+== What is ArangoDB
+
+== Topics
+ - Two API calls for vertex and edge.
+   * `createDocuemnt` vs `graphCreateVertex`
+   * `createEdge` vs `graphCreateEdge`
+
+The the API calls, `createEdge` does not do validation, but `graphCreateEdge` does.
+No idea what `graphCreateVertex` does differently from `createDocument` <- **NEED to exlpore further**.
+
+Batching helps.
+The `setBatchSize()` in `ArangoConfig` has nothing to do with execution batching.
+
+== Benchmark Setup
+50K nodes and an edge in between all nodes, so 49999 edges.
+
