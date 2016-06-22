@@ -1,21 +1,69 @@
-= ArangoDB Performance Pecularites
+= ArangoDB Performance Peculiarities
 :page-layout: post
-:page-categories: artices
+:page-categories: articles
 :page-tags: arangodb, performance, graph database
 
-== What is ArangoDB
+:neo4j: https://neo4j.com/[Neo4j]
+:arangodb: https://www.arangodb.com/[ArangoDB]
+:cypher: https://neo4j.com/developer/cypher-query-language/[Cypher]
 
-== Topics
- - Two API calls for vertex and edge.
-   * `createDocuemnt` vs `graphCreateVertex`
-   * `createEdge` vs `graphCreateEdge`
+== Why ArangoDB?
+At work, we are looking into incorporating a graph database into our next generation stack.
+Graph database fits our business domain and business model very nicely,
+and a lot of our queries involve traversing some relationships.
+
+I personally have experience with {neo4j}, and think it is very good at its job.
+On top of that, I think {cypher}, the Neo4j's query language, is well designed and intuitive.
+However, due to licensing issues for {neo4j}, the higher-ups do not approve of Neo4j.
+Then my immediate manager finds out about {arangodb}.
+So off I went with my teammate to evaluate {arangodb}.
+
+== What is ArangoDB
+ArangoDB is a multi-model database.
+It supports document, key/value, and graph data models.
+Quite honestly, when I first read about the multi-model, I feel skeptical.
+Having different models could lead to compromises.
+That may mean {arangodb} is _"jack of all trades, master of none"_.
+As I am writing this, I am still not sure.
+
+== Evaluation
+For the evaluation, my teammate and I are looking into the following areas
+
+ * Traversal performance
+ * Creation performance
+ * Scalability
+ * HA
+ * Query language expressiveness
+ * Developer friendliness
+
+Details
+
+ * Two API calls for vertex and edge.
+   - `createDocuemnt` vs `graphCreateVertex`
+   - `createEdge` vs `graphCreateEdge`
 
 The the API calls, `createEdge` does not do validation, but `graphCreateEdge` does.
 No idea what `graphCreateVertex` does differently from `createDocument` <- **NEED to exlpore further**.
 
-Batching helps.
+Batching helps a lot!
 The `setBatchSize()` in `ArangoConfig` has nothing to do with execution batching.
 
 == Benchmark Setup
 50K nodes and an edge in between all nodes, so 49999 edges.
 
+
+[source]
+----
+--> Creating 50000 vertices - graphCreateVertex
+Elapsed time: 56748ms
+--> Creating 49999 edges - graphCreateEdge
+Elapsed time: 57497ms
+--> Creating 50000 vertices - createDocument
+Elapsed time: 9987ms
+--> Creating 49999 edges - createEdge
+Elapsed time: 9283ms
+--> Creating 50000 vertices - createDocument (batched 100)
+Elapsed time: 3520ms
+--> Creating 49999 edges - createEdge (batched 100)
+Elapsed time: 3942ms
+----
