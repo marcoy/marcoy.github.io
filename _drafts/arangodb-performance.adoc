@@ -86,3 +86,33 @@ In this post, I only evaluate the graph creation time.
 Another metric I care about is the traversal time.
 I have code that measures the traversal time as well,
 but I will leave that for the next post.
+
+////
+waitForSync = true
+--> Creating 50000 vertices - graphCreateVertex
+Elapsed time: 630334ms
+--> Creating 49999 edges - graphCreateEdge
+Elapsed time: 51411ms
+--> Creating 50000 vertices - createDocument
+Elapsed time: 5888ms
+--> Creating 49999 edges - createEdge
+Elapsed time: 540108ms
+--> Creating 50000 vertices - createDocument (batched 100)
+Elapsed time: 3042ms
+--> Creating 49999 edges - createEdge (batched 100)
+Elapsed time: 515550ms
+
+waitForSync = false
+--> Creating 50000 vertices - graphCreateVertex
+Elapsed time: 52234ms
+--> Creating 49999 edges - graphCreateEdge
+Elapsed time: 52356ms
+--> Creating 50000 vertices - createDocument
+Elapsed time: 6326ms
+--> Creating 49999 edges - createEdge
+Elapsed time: 6252ms
+--> Creating 50000 vertices - createDocument (batched 100)
+Elapsed time: 3155ms
+--> Creating 49999 edges - createEdge (batched 100)
+Elapsed time: 3600ms
+////
