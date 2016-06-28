@@ -1,0 +1,34 @@
+= ArangoDB 3.0 Results
+:page-layout: post
+:page-categories: articles
+:page-tags: arangodb, performance, graph database
+
+////
+waitForSync = true
+--> Creating 50000 vertices - graphCreateVertex
+Elapsed time: 630334ms
+--> Creating 49999 edges - graphCreateEdge
+Elapsed time: 51411ms
+--> Creating 50000 vertices - createDocument
+Elapsed time: 5888ms
+--> Creating 49999 edges - createEdge
+Elapsed time: 540108ms
+--> Creating 50000 vertices - createDocument (batched 100)
+Elapsed time: 3042ms
+--> Creating 49999 edges - createEdge (batched 100)
+Elapsed time: 515550ms
+
+waitForSync = false
+--> Creating 50000 vertices - graphCreateVertex
+Elapsed time: 52234ms
+--> Creating 49999 edges - graphCreateEdge
+Elapsed time: 52356ms
+--> Creating 50000 vertices - createDocument
+Elapsed time: 6326ms
+--> Creating 49999 edges - createEdge
+Elapsed time: 6252ms
+--> Creating 50000 vertices - createDocument (batched 100)
+Elapsed time: 3155ms
+--> Creating 49999 edges - createEdge (batched 100)
+Elapsed time: 3600ms
+////
