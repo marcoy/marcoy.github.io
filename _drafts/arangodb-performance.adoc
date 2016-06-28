@@ -29,12 +29,12 @@ That may mean {arangodb} is _"jack of all trades, master of none"_.
 == Evaluation
 I wrote this post before ArangoDB 3.0.0 came out.
 For the following evaluation, I am using version 2.8.9.
-Later on, I will post the results for 3.0.0.
+The results for 3.0.0 will be posted shortly.
 The evaluation was done on a 15-inch MacBook Pro (mid-2014 model);
 the test is to determine how long does ArangoDB take to create 50,000 vertices
 and 49,999 edges.
-The test is very simple, but I discover something interesting with ArangoDB.
-The evaluate code, written in Scala, can be found at this {gist}.
+The test is very simple, but I discover something peculiar with ArangoDB.
+The evaluate code, written in Scala, can be found in this {gist}.
 
 === The Results
 Below are the results for ArangoDB 2.8.9:
@@ -60,11 +60,12 @@ from around 57 seconds to around 10 seconds.
 With batching enabled, the numbers go down even further.
 All in all, the times go down from around 57s to just 4s;
 that is a *big* jump!
-What is surprising is the time difference between the API calls, namely,
+What is surprising is the time difference between the different API calls, namely,
 `graphCreateVertex` vs. `createDocument` and `graphCreateEdge` vs. `createEdge`.
 
 As far as I can tell, the difference between `graphCreateEdge` and `createEdge` is that
-the former performs validation; it makes sure the two vertices are present.
+the former performs validation;
+it makes sure the two vertices are present.
 Whereas the latter do not perform such validation.
 
 However, I cannot really tell the difference between `graphCreateVertex` and `createDocument`.
@@ -85,34 +86,4 @@ Though I am only concerned with the graph capabilities.
 In this post, I only evaluate the graph creation time.
 Another metric I care about is the traversal time.
 I have code that measures the traversal time as well,
-but I will leave that for the next post.
-
-////
-waitForSync = true
---> Creating 50000 vertices - graphCreateVertex
-Elapsed time: 630334ms
---> Creating 49999 edges - graphCreateEdge
-Elapsed time: 51411ms
---> Creating 50000 vertices - createDocument
-Elapsed time: 5888ms
---> Creating 49999 edges - createEdge
-Elapsed time: 540108ms
---> Creating 50000 vertices - createDocument (batched 100)
-Elapsed time: 3042ms
---> Creating 49999 edges - createEdge (batched 100)
-Elapsed time: 515550ms
-
-waitForSync = false
---> Creating 50000 vertices - graphCreateVertex
-Elapsed time: 52234ms
---> Creating 49999 edges - graphCreateEdge
-Elapsed time: 52356ms
---> Creating 50000 vertices - createDocument
-Elapsed time: 6326ms
---> Creating 49999 edges - createEdge
-Elapsed time: 6252ms
---> Creating 50000 vertices - createDocument (batched 100)
-Elapsed time: 3155ms
---> Creating 49999 edges - createEdge (batched 100)
-Elapsed time: 3600ms
-////
+but I will leave that for a later post.
