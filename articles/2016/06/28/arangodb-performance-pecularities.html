@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html>
+
+  <head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <title>ArangoDB Performance Peculiarities</title>
+  <meta name="description" content="">
+  <link href='https://fonts.googleapis.com/css?family=PT+Sans:400,700,400italic,700italic' rel='stylesheet' type='text/css'>
+  <link href='https://fonts.googleapis.com/css?family=Source+Sans+Pro:400,700,200,300' rel='stylesheet' type='text/css'>
+  <link href='https://fonts.googleapis.com/css?family=Josefin+Sans:400,600,700,300' rel='stylesheet' type='text/css'>
+
+  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.6.3/css/font-awesome.min.css">
+  <link rel="stylesheet" href="/css/style.css">
+  <link rel="stylesheet" href="/css/asciidoctor.css">
+  <link rel="canonical" href="http://www.marcoyuen.com/articles/2016/06/28/arangodb-performance-pecularities.html">
+  <link rel="alternate" type="application/rss+xml" title="Marco Yuen" href="http://www.marcoyuen.com/feed.xml">
+</head>
+
+
+  <body>
+
+    
+<div class="wrapper">
+  <center><div class="site-title">Marco Yuen</div></center>
+</div>
+<div class="wrapper site-description">
+  <center>Life and Programming</center>
+</div>
+<div class="wrapper">
+  <div class="trigger site-navigation">
+    <center>
+      <a class="page-link" href="/index.html">HOME</a>
+      
+        
+          <span class="exclamationMark">/</span><a class="page-link" href="/about/">About</a>
+        
+      
+        
+      
+        
+      
+        
+          <span class="exclamationMark">/</span><a class="page-link" href="/resume/">Resume</a>
+        
+      
+        
+      
+    </center>
+  </div>
+</div>
+
+
+    <div class="page-content">
+      <div class="wrapper">
+        <article class="post" itemscope itemtype="http://schema.org/BlogPosting">
+  <header class="post-header">
+    <h1 class="post-title" itemprop="name headline">ArangoDB Performance Peculiarities</h1>
+    <center>
+      <p class="post-meta">
+        <time datetime="2016-06-28T00:00:00-04:00" itemprop="datePublished">Jun 28, 2016</time>
+      </p>
+      
+    </center>
+  </header>
+
+  <div class="post-content" itemprop="articleBody">
+    <div class="sect1">
+<h2 id="_why-arangodb">Why ArangoDB?</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>At work, we are looking into incorporating a graph database into our next generation stack.
+Graph database fits our business domain and business model very nicely,
+and a lot of our queries involve some form travarsal of relationships.</p>
+</div>
+<div class="paragraph">
+<p>I have previous experience in <a href="https://neo4j.com/">Neo4j</a>, and think it is very good at its job.
+On top of that, I think <a href="https://neo4j.com/developer/cypher-query-language/">Cypher</a>, the Neo4j&#8217;s query language, is well designed and intuitive.
+However, due to licensing issues for <a href="https://neo4j.com/">Neo4j</a>, the higher-ups do not approve of using Neo4j.
+Then my immediate manager finds out about <a href="https://www.arangodb.com/">ArangoDB</a>.
+So off I went with my teammate to evaluate <a href="https://www.arangodb.com/">ArangoDB</a>.</p>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_what-is-arangodb">What is ArangoDB</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>ArangoDB is a multi-model database.
+It supports document, key/value, and graph data models.
+Quite honestly, when I first read about the multi-model, I feel skeptical.
+Having different models could lead to compromises.
+That may mean <a href="https://www.arangodb.com/">ArangoDB</a> is <em>"jack of all trades, master of none"</em>.</p>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_evaluation">Evaluation</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>I wrote this post before ArangoDB 3.0.0 came out.
+For the following evaluation, I am using version 2.8.9.
+The results for 3.0.0 will be posted shortly.
+The evaluation was done on a 15-inch MacBook Pro (mid-2014 model);
+the test is to determine how long does ArangoDB take to create 50,000 vertices
+and 49,999 edges.
+The test is very simple, but I discover something peculiar with ArangoDB.
+The evaluate code, written in Scala, can be found in this <a href="https://gist.github.com/marcoy/ec0292fa6687956131f8e339bbace780">gist</a>.</p>
+</div>
+<div class="sect2">
+<h3 id="_the-results">The Results</h3>
+<div class="paragraph">
+<p>Below are the results for ArangoDB 2.8.9:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="pygments highlight"><code>--&gt; Creating 50000 vertices - graphCreateVertex
+Elapsed time: 56748ms
+--&gt; Creating 49999 edges - graphCreateEdge
+Elapsed time: 57497ms
+--&gt; Creating 50000 vertices - createDocument
+Elapsed time: 9987ms
+--&gt; Creating 49999 edges - createEdge
+Elapsed time: 9283ms
+--&gt; Creating 50000 vertices - createDocument (batched 100)
+Elapsed time: 3520ms
+--&gt; Creating 49999 edges - createEdge (batched 100)
+Elapsed time: 3942ms</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>As you can see, the creation times for the vertices and edges go down
+from around 57 seconds to around 10 seconds.
+With batching enabled, the numbers go down even further.
+All in all, the times go down from around 57s to just 4s;
+that is a <strong>big</strong> jump!
+What is surprising is the time difference between the different API calls, namely,
+<code>graphCreateVertex</code> vs. <code>createDocument</code> and <code>graphCreateEdge</code> vs. <code>createEdge</code>.</p>
+</div>
+<div class="paragraph">
+<p>As far as I can tell, the difference between <code>graphCreateEdge</code> and <code>createEdge</code> is that
+the former performs validation;
+it makes sure the two vertices are present.
+Whereas the latter do not perform such validation.</p>
+</div>
+<div class="paragraph">
+<p>However, I cannot really tell the difference between <code>graphCreateVertex</code> and <code>createDocument</code>.
+At first glance, one may say <code>graphCreateVertex</code> is for creating a vertex,
+and <code>createDocument</code> is for creating a document.
+However, as far as I understand, a vertex in ArangoDB is just a document.
+Moreover, the graph created by <code>createDocument</code> and <code>createEdge</code>,
+works just fine with AQL, the ArangoDB&#8217;s query language.
+The outcome seems to be the same,
+but <code>createDocument</code> is significantly faster than <code>graphCreateVertex</code>.</p>
+</div>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_closing-thoughts">Closing Thoughts</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>Overall ArangoDB is quite capable.
+Aside from the few gotchas I mentioned in the previous section,
+everything functions as advertised, and the performance is acceptable.
+Being able to support different data models in ArangoDB can be convenient.
+Though I am only concerned with the graph capabilities.
+In this post, I only evaluate the graph creation time.
+Another metric I care about is the traversal time.
+I have code that measures the traversal time as well,
+but I will leave that for a later post.</p>
+</div>
+</div>
+</div>
+  </div>
+</article>
+
+      </div>
+    </div>
+
+    <footer class="site-footer">
+
+  <div class="wrapper">
+
+    <h2 class="footer-heading small-site-title">Marco Yuen</h2>
+
+    <div class="footer-col-wrapper">
+      <div class="footer-col footer-col-1">
+        <ul class="contact-list footer-content">
+          <li>Powered By
+            <a href="https://jekyllrb.com/">Jekyll</a>
+          </li>
+          <li>
+            using <a href="http://github.com/hemangsk/Gravity">Gravity</a>
+          </li>
+        </ul>
+      </div>
+
+      <div class="footer-col footer-col-2 footer-content">
+        <ul class="social-media-list">
+          
+          <li>
+            <a href="https://github.com/marcoy"><span class="fa fa-github-alt fa-lg fa-fw"></span><span class="username">marcoy</span></a>
+
+          </li>
+          
+
+          
+          <li>
+            <a href="https://gitlab.com/marcoy"><span class="fa fa-gitlab fa-lg fa-fw"></span><span class="username">marcoy</span></a>
+
+          </li>
+          
+
+          
+          <li>
+            <a href="https://www.linkedin.com/in/marcoyuen"><span class="fa fa-linkedin fa-lg fa-fw"></span><span class="username">marcoyuen</span></a>
+
+          </li>
+          
+
+          
+          <li>
+            <a href="https://twitter.com/marcoyyk"><span class="fa fa-twitter fa-lg fa-fw"></span><span class="username">marcoyyk</span></a>
+
+          </li>
+          
+        </ul>
+      </div>
+
+      <div class="footer-col footer-col-3 site-description">
+        <p>Life and Programming</p>
+      </div>
+    </div>
+
+  </div>
+
+</footer>
+
+
+  </body>
+
+</html>

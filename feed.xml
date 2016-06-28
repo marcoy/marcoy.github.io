@@ -5,9 +5,129 @@
     <description>Life and Programming</description>
     <link>http://www.marcoyuen.com/</link>
     <atom:link href="http://www.marcoyuen.com/feed.xml" rel="self" type="application/rss+xml"/>
-    <pubDate>Mon, 27 Jun 2016 17:43:08 -0400</pubDate>
-    <lastBuildDate>Mon, 27 Jun 2016 17:43:08 -0400</lastBuildDate>
+    <pubDate>Tue, 28 Jun 2016 09:10:07 -0400</pubDate>
+    <lastBuildDate>Tue, 28 Jun 2016 09:10:07 -0400</lastBuildDate>
     <generator>Jekyll v3.1.6</generator>
+    
+      <item>
+        <title>ArangoDB Performance Peculiarities</title>
+        <description>&lt;div class=&quot;sect1&quot;&gt;
+&lt;h2 id=&quot;_why-arangodb&quot;&gt;Why ArangoDB?&lt;/h2&gt;
+&lt;div class=&quot;sectionbody&quot;&gt;
+&lt;div class=&quot;paragraph&quot;&gt;
+&lt;p&gt;At work, we are looking into incorporating a graph database into our next generation stack.
+Graph database fits our business domain and business model very nicely,
+and a lot of our queries involve some form travarsal of relationships.&lt;/p&gt;
+&lt;/div&gt;
+&lt;div class=&quot;paragraph&quot;&gt;
+&lt;p&gt;I have previous experience in &lt;a href=&quot;https://neo4j.com/&quot;&gt;Neo4j&lt;/a&gt;, and think it is very good at its job.
+On top of that, I think &lt;a href=&quot;https://neo4j.com/developer/cypher-query-language/&quot;&gt;Cypher&lt;/a&gt;, the Neo4j&amp;#8217;s query language, is well designed and intuitive.
+However, due to licensing issues for &lt;a href=&quot;https://neo4j.com/&quot;&gt;Neo4j&lt;/a&gt;, the higher-ups do not approve of using Neo4j.
+Then my immediate manager finds out about &lt;a href=&quot;https://www.arangodb.com/&quot;&gt;ArangoDB&lt;/a&gt;.
+So off I went with my teammate to evaluate &lt;a href=&quot;https://www.arangodb.com/&quot;&gt;ArangoDB&lt;/a&gt;.&lt;/p&gt;
+&lt;/div&gt;
+&lt;/div&gt;
+&lt;/div&gt;
+&lt;div class=&quot;sect1&quot;&gt;
+&lt;h2 id=&quot;_what-is-arangodb&quot;&gt;What is ArangoDB&lt;/h2&gt;
+&lt;div class=&quot;sectionbody&quot;&gt;
+&lt;div class=&quot;paragraph&quot;&gt;
+&lt;p&gt;ArangoDB is a multi-model database.
+It supports document, key/value, and graph data models.
+Quite honestly, when I first read about the multi-model, I feel skeptical.
+Having different models could lead to compromises.
+That may mean &lt;a href=&quot;https://www.arangodb.com/&quot;&gt;ArangoDB&lt;/a&gt; is &lt;em&gt;&quot;jack of all trades, master of none&quot;&lt;/em&gt;.&lt;/p&gt;
+&lt;/div&gt;
+&lt;/div&gt;
+&lt;/div&gt;
+&lt;div class=&quot;sect1&quot;&gt;
+&lt;h2 id=&quot;_evaluation&quot;&gt;Evaluation&lt;/h2&gt;
+&lt;div class=&quot;sectionbody&quot;&gt;
+&lt;div class=&quot;paragraph&quot;&gt;
+&lt;p&gt;I wrote this post before ArangoDB 3.0.0 came out.
+For the following evaluation, I am using version 2.8.9.
+The results for 3.0.0 will be posted shortly.
+The evaluation was done on a 15-inch MacBook Pro (mid-2014 model);
+the test is to determine how long does ArangoDB take to create 50,000 vertices
+and 49,999 edges.
+The test is very simple, but I discover something peculiar with ArangoDB.
+The evaluate code, written in Scala, can be found in this &lt;a href=&quot;https://gist.github.com/marcoy/ec0292fa6687956131f8e339bbace780&quot;&gt;gist&lt;/a&gt;.&lt;/p&gt;
+&lt;/div&gt;
+&lt;div class=&quot;sect2&quot;&gt;
+&lt;h3 id=&quot;_the-results&quot;&gt;The Results&lt;/h3&gt;
+&lt;div class=&quot;paragraph&quot;&gt;
+&lt;p&gt;Below are the results for ArangoDB 2.8.9:&lt;/p&gt;
+&lt;/div&gt;
+&lt;div class=&quot;listingblock&quot;&gt;
+&lt;div class=&quot;content&quot;&gt;
+&lt;pre class=&quot;pygments highlight&quot;&gt;&lt;code&gt;--&amp;gt; Creating 50000 vertices - graphCreateVertex
+Elapsed time: 56748ms
+--&amp;gt; Creating 49999 edges - graphCreateEdge
+Elapsed time: 57497ms
+--&amp;gt; Creating 50000 vertices - createDocument
+Elapsed time: 9987ms
+--&amp;gt; Creating 49999 edges - createEdge
+Elapsed time: 9283ms
+--&amp;gt; Creating 50000 vertices - createDocument (batched 100)
+Elapsed time: 3520ms
+--&amp;gt; Creating 49999 edges - createEdge (batched 100)
+Elapsed time: 3942ms&lt;/code&gt;&lt;/pre&gt;
+&lt;/div&gt;
+&lt;/div&gt;
+&lt;div class=&quot;paragraph&quot;&gt;
+&lt;p&gt;As you can see, the creation times for the vertices and edges go down
+from around 57 seconds to around 10 seconds.
+With batching enabled, the numbers go down even further.
+All in all, the times go down from around 57s to just 4s;
+that is a &lt;strong&gt;big&lt;/strong&gt; jump!
+What is surprising is the time difference between the different API calls, namely,
+&lt;code&gt;graphCreateVertex&lt;/code&gt; vs. &lt;code&gt;createDocument&lt;/code&gt; and &lt;code&gt;graphCreateEdge&lt;/code&gt; vs. &lt;code&gt;createEdge&lt;/code&gt;.&lt;/p&gt;
+&lt;/div&gt;
+&lt;div class=&quot;paragraph&quot;&gt;
+&lt;p&gt;As far as I can tell, the difference between &lt;code&gt;graphCreateEdge&lt;/code&gt; and &lt;code&gt;createEdge&lt;/code&gt; is that
+the former performs validation;
+it makes sure the two vertices are present.
+Whereas the latter do not perform such validation.&lt;/p&gt;
+&lt;/div&gt;
+&lt;div class=&quot;paragraph&quot;&gt;
+&lt;p&gt;However, I cannot really tell the difference between &lt;code&gt;graphCreateVertex&lt;/code&gt; and &lt;code&gt;createDocument&lt;/code&gt;.
+At first glance, one may say &lt;code&gt;graphCreateVertex&lt;/code&gt; is for creating a vertex,
+and &lt;code&gt;createDocument&lt;/code&gt; is for creating a document.
+However, as far as I understand, a vertex in ArangoDB is just a document.
+Moreover, the graph created by &lt;code&gt;createDocument&lt;/code&gt; and &lt;code&gt;createEdge&lt;/code&gt;,
+works just fine with AQL, the ArangoDB&amp;#8217;s query language.
+The outcome seems to be the same,
+but &lt;code&gt;createDocument&lt;/code&gt; is significantly faster than &lt;code&gt;graphCreateVertex&lt;/code&gt;.&lt;/p&gt;
+&lt;/div&gt;
+&lt;/div&gt;
+&lt;/div&gt;
+&lt;/div&gt;
+&lt;div class=&quot;sect1&quot;&gt;
+&lt;h2 id=&quot;_closing-thoughts&quot;&gt;Closing Thoughts&lt;/h2&gt;
+&lt;div class=&quot;sectionbody&quot;&gt;
+&lt;div class=&quot;paragraph&quot;&gt;
+&lt;p&gt;Overall ArangoDB is quite capable.
+Aside from the few gotchas I mentioned in the previous section,
+everything functions as advertised, and the performance is acceptable.
+Being able to support different data models in ArangoDB can be convenient.
+Though I am only concerned with the graph capabilities.
+In this post, I only evaluate the graph creation time.
+Another metric I care about is the traversal time.
+I have code that measures the traversal time as well,
+but I will leave that for a later post.&lt;/p&gt;
+&lt;/div&gt;
+&lt;/div&gt;
+&lt;/div&gt;</description>
+        <pubDate>Tue, 28 Jun 2016 00:00:00 -0400</pubDate>
+        <link>http://www.marcoyuen.com/articles/2016/06/28/arangodb-performance-pecularities.html</link>
+        <guid isPermaLink="true">http://www.marcoyuen.com/articles/2016/06/28/arangodb-performance-pecularities.html</guid>
+        
+        <category>arangodb, performance, graph database</category>
+        
+        
+        <category>articles</category>
+        
+      </item>
     
       <item>
         <title>Streamlining Git Sparse Checkout with git-sparse</title>
