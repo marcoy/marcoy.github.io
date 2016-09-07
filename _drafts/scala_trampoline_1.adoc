@@ -20,10 +20,10 @@ The book is excellent.
 ====
 
 In the paper,
-he illustrates a shortcoming if one were to write Scala in a functional manner.
+he illustrates a shortcoming if one were to write Scala in a functional style.
 I am a huge proponent of functional programming.
 Having been dabbling in Clojure, Haskell, and, now, Scala.
-Being able to write Scala in a functional way is quite important to me.
+Being able to write Scala in a functional way is very important to me.
 So, I am very interested in how the problem is solved in Scala.
 I believe the patterns introduced in the paper are being used by libraries like
 {cats}[cats] and {scalaz}[scalaz].
@@ -33,9 +33,8 @@ these posts will serve as a study notes for myself.
 As a side effect, hopefully, these will be helpful to others as well.
 
 == Introduction
-The example below is copied straight from the paper.
-I added some comments and nothing else.
-The example is used to illustrate a shortcoming of writing functional style Scala.
+The example below is copied straight from the paper,
+and it is used to illustrate a shortcoming of writing functional style Scala.
 Let's go over it.
 
 The example in the paper is to zip every element of a list with its index.
@@ -107,7 +106,7 @@ zipIndex xs = run (innerZipIndex xs) 0
 ----
 <1> Get and update the state inside `MyState` monad.
 
-== The problem
+== The Problem
 There is, however, a major problem in the Scala implementation --
 it is not stack safe.
 Meaning given a sufficiently large input list,
@@ -144,9 +143,9 @@ and the anonymous function being passed into that new instance of `State` will c
 the _current_ instance of `State` (`this` line 3).
 Essentially, we are creating a nested stack of `State` actions as shown in the following screenshot.
 
-image::/images/nested-state.png[align="center"]
+image::/images/nested-state.png[align="center",title="Result of five flatMap calls"]
 
-Going back to the example, as we fold over the whole list,
+Going back to the `zipIndex` example, as we fold over the whole list,
 we are creating a stack of `State` actions linear to the number of elements in the list.
 So, when we evaluate the stack of `State` actions by calling `runS`,
 before `runS` returns, it will call `runS` of its inner `State` action,
@@ -156,3 +155,7 @@ Eventually, there are more stack frames that the JVM can allow.
 
 On my MBP, the `zipIndex` function will throw `StackOverflowError`,
 when the input is a list of around 4000 integers.
+A list of about 4000 elements is not that big as an input,
+such limitation makes functional programming in Scala not practical.
+But fear not, there are solutions mentioned in the paper to the stack safety problem,
+and I will talk about them in the subsequent posts.
