@@ -1,6 +1,7 @@
-= Stackless Scala: The Problem, Part 1
+= Stackless Scala, Part 1: The Problem
 :page-layout: post
 :page-categories: articles
+:page-tags: scala, functional programming
 
 :stackless-pdf: http://blog.higher-order.com/assets/trampolines.pdf
 :higher-order: http://blog.higher-order.com/
@@ -37,11 +38,15 @@ The example below is copied straight from the paper,
 and it is used to illustrate a shortcoming of writing functional style Scala.
 Let's go over it.
 
-The example in the paper is to zip every element of a list with its index.
+The example given in the paper describes a function that zips every element of a list with its
+index.
 The `zipIndex` function will traverse the given list while maintaining some state.
+The state being the index.
 So if the list `List(10, 20, 30)` is passed into `zipIndex`,
 the return value will be `List\((0,10), (1,20), (2,30))`
 where the first position of the tuples are the indices.
+A `State` action is used to keep track of the state as well as the final return value.
+The code for `State` and `zipIndex` is shown below.
 
 [source,scala,lineno]
 ----
@@ -77,15 +82,16 @@ def zipIndex[V](as: List[V]): List[(Int, V)] =
 ----
 <1> The `State` case class and `pureState` forms a monad.
 <2> Folding over the input list, where the return value of the fold is a `State` action.
-<3> Using for comprehension to calculate the next index, and store it back to the `State` action.
+<3> Using for comprehension to calculate the next index,
+    and store it back to the `State` action.
 
 So far so good.
 The implementation of `zipIndex` looks like a typical monadic computation
-where different functions are composed together inside the monadic context.
-We have a `State` which contains a state and a value.
+where different functions are composed together inside a monadic context.
+We have a `State` action which contains a state and a value.
 In this case, the state is the index we are going to assign,
 and the value is the list of tuples.
-Such implementation is fairly standard, even in Haskell.
+Such implementation is fairly standard even in Haskell.
 I have implemented the example in {ziHs-gist}[Haskell].
 Here is `zipIndex` in Haskell.
 
@@ -94,15 +100,15 @@ Here is `zipIndex` in Haskell.
 ----
 zipIndex :: [a] -> ([(Int, a)], Int)
 zipIndex xs = run (innerZipIndex xs) 0
-    where
-        innerZipIndex :: [a] -> MyState Int [(Int, a)]
-        innerZipIndex xs = foldM step [] xs
+  where
+    innerZipIndex :: [a] -> MyState Int [(Int, a)]
+    innerZipIndex xs = foldM step [] xs
 
-        step :: [(Int, a)] -> a -> MyState Int [(Int, a)]
-        step acc e = do // <1>
-            i <- getState
-            setState (i + 1)
-            return $ (i, e) : acc
+    step :: [(Int, a)] -> a -> MyState Int [(Int, a)]
+    step acc e = do // <1>
+        i <- getState
+        setState (i + 1)
+        return $ (i, e) : acc
 ----
 <1> Get and update the state inside `MyState` monad.
 
@@ -140,7 +146,8 @@ Therefore, for every step of the fold in `zipIndex`,
 it will call `flatMap` on the variable `acc` which is a `State` action.
 Inside `flatMap`, a new instance of `State` will be created,
 and the anonymous function being passed into that new instance of `State` will close over
-the _current_ instance of `State` (`this` line 3).
+the _current_ instance of `State` (`this` line 3),
+so that the `runS` method can be called.
 Essentially, we are creating a nested stack of `State` actions as shown in the following screenshot.
 
 image::/images/nested-state.png[align="center",title="Result of five flatMap calls"]
@@ -149,13 +156,13 @@ Going back to the `zipIndex` example, as we fold over the whole list,
 we are creating a stack of `State` actions linear to the number of elements in the list.
 So, when we evaluate the stack of `State` actions by calling `runS`,
 before `runS` returns, it will call `runS` of its inner `State` action,
-and that call to inner `runS` will call its inner State action's `runS` and so on.
+and that call to inner `runS` will call its inner State action's `runS` and so on and so forth.
 As the call goes deeper and deeper, it keeps creating new stack frames.
 Eventually, there are more stack frames that the JVM can allow.
 
-On my MBP, the `zipIndex` function will throw `StackOverflowError`,
+On my MBP, the `zipIndex` function will throw `StackOverflowError`
 when the input is a list of around 4000 integers.
-A list of about 4000 elements is not that big as an input,
+A list of about 4000 elements is not that big of an input,
 such limitation makes functional programming in Scala not practical.
 But fear not, there are solutions mentioned in the paper to the stack safety problem,
 and I will talk about them in the subsequent posts.
