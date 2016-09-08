@@ -1,0 +1,404 @@
+<!DOCTYPE html>
+<html>
+
+  <head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <title>Stackless Scala, Part 1: The Problem</title>
+  <meta name="description" content="">
+  <link href='https://fonts.googleapis.com/css?family=PT+Sans:400,700,400italic,700italic' rel='stylesheet' type='text/css'>
+  <link href='https://fonts.googleapis.com/css?family=Source+Sans+Pro:400,700,200,300' rel='stylesheet' type='text/css'>
+  <link href='https://fonts.googleapis.com/css?family=Josefin+Sans:400,600,700,300' rel='stylesheet' type='text/css'>
+
+  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.6.3/css/font-awesome.min.css">
+  <link rel="stylesheet" href="/css/style.css">
+  <link rel="stylesheet" href="/css/asciidoctor.css">
+  <link rel="canonical" href="http://www.marcoyuen.com/articles/2016/09/08/stackless-scala-1-the-problem.html">
+  <link rel="alternate" type="application/rss+xml" title="Marco Yuen" href="http://www.marcoyuen.com/feed.xml">
+</head>
+
+
+  <body>
+
+    
+<div class="wrapper">
+  <center><div class="site-title">Marco Yuen</div></center>
+</div>
+<div class="wrapper site-description">
+  <center>Life and Programming</center>
+</div>
+<div class="wrapper">
+  <div class="trigger site-navigation">
+    <center>
+      <a class="page-link" href="/index.html">HOME</a>
+      
+        
+          <span class="exclamationMark">/</span><a class="page-link" href="/about/">About</a>
+        
+      
+        
+      
+        
+      
+        
+          <span class="exclamationMark">/</span><a class="page-link" href="/resume/">Resume</a>
+        
+      
+        
+      
+    </center>
+  </div>
+</div>
+
+
+    <div class="page-content">
+      <div class="wrapper">
+        <article class="post" itemscope itemtype="http://schema.org/BlogPosting">
+  <header class="post-header">
+    <h1 class="post-title" itemprop="name headline">Stackless Scala, Part 1: The Problem</h1>
+    <center>
+      <p class="post-meta">
+        <time datetime="2016-09-08T00:00:00-04:00" itemprop="datePublished">Sep 08, 2016</time>
+      </p>
+      
+    </center>
+  </header>
+
+  <div class="post-content" itemprop="articleBody">
+    <div class="sect1">
+<h2 id="_motivation">Motivation</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>I am reading the paper, <a href="http://blog.higher-order.com/assets/trampolines.pdf">Stackless Scala with Free Monad</a>,
+by <a href="http://blog.higher-order.com/" target="_blank">Rúnar Bjarnason</a>.</p>
+</div>
+<div class="admonitionblock note">
+<table>
+<tr>
+<td class="icon">
+<i class="fa icon-note" title="Note"></i>
+</td>
+<td class="content">
+<div class="paragraph">
+<p>Also checkout Rúnar&#8217;s book <a href="https://www.manning.com/books/functional-programming-in-scala">Functional Programming in Scala</a>.
+The book is excellent.</p>
+</div>
+</td>
+</tr>
+</table>
+</div>
+<div class="paragraph">
+<p>In the paper,
+he illustrates a shortcoming if one were to write Scala in a functional style.
+I am a huge proponent of functional programming.
+Having been dabbling in Clojure, Haskell, and, now, Scala.
+Being able to write Scala in a functional way is very important to me.
+So, I am very interested in how the problem is solved in Scala.
+I believe the patterns introduced in the paper are being used by libraries like
+<a href="https://github.com/typelevel/cats">cats</a> and <a href="https://github.com/scalaz/scalaz">scalaz</a>.</p>
+</div>
+<div class="paragraph">
+<p>Most importantly,
+these posts will serve as a study notes for myself.
+As a side effect, hopefully, these will be helpful to others as well.</p>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_introduction">Introduction</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>The example below is copied straight from the paper,
+and it is used to illustrate a shortcoming of writing functional style Scala.
+Let&#8217;s go over it.</p>
+</div>
+<div class="paragraph">
+<p>The example given in the paper describes a function that zips every element of a list with its
+index.
+The <code>zipIndex</code> function will traverse the given list while maintaining some state.
+The state being the index.
+So if the list <code>List(10, 20, 30)</code> is passed into <code>zipIndex</code>,
+the return value will be <code>List((0,10), (1,20), (2,30))</code>
+where the first position of the tuples are the indices.
+A <code>State</code> action is used to keep track of the state as well as the final return value.
+The code for <code>State</code> and <code>zipIndex</code> is shown below.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="pygments highlight"><code data-lang="scala"><table class="pyhltable"><tr><td><div class="linenodiv" style="background-color: #f0f0f0; padding-right: 10px"> 1
+ 2
+ 3
+ 4
+ 5
+ 6
+ 7
+ 8
+ 9
+10
+11
+12
+13
+14
+15
+16
+17
+18
+19
+20
+21
+22
+23
+24
+25
+26
+27
+28
+29</div></td><td class="code"><span style="color: #008000; font-weight: bold">case</span> <span style="color: #008000; font-weight: bold">class</span> <span style="color: #0000FF; font-weight: bold">State</span><span style="color: #666666">[</span><span style="color: #B00040">S</span>,<span style="color: #B00040">+A</span><span style="color: #666666">](</span>runS<span style="color: #008000; font-weight: bold">:</span> <span style="color: #B00040">S</span> <span style="color: #666666">=&gt;</span> <span style="color: #666666">(</span>A<span style="color: #666666">,</span> S<span style="color: #666666">))</span> <span style="color: #666666">{</span> <i class="conum" data-value="1"></i><b>(1)</b>
+  <span style="color: #008000; font-weight: bold">def</span> map<span style="color: #666666">[</span><span style="color: #B00040">B</span><span style="color: #666666">](</span>f<span style="color: #008000; font-weight: bold">:</span> <span style="color: #B00040">A</span> <span style="color: #666666">=&gt;</span> B<span style="color: #666666">)</span> <span style="color: #008000; font-weight: bold">=</span> <span style="color: #0000FF; font-weight: bold">State</span><span style="color: #666666">[</span><span style="color: #B00040">S</span>,<span style="color: #B00040">B</span><span style="color: #666666">](</span>s <span style="color: #008000; font-weight: bold">=&gt;</span> <span style="color: #666666">{</span>
+    <span style="color: #008000; font-weight: bold">val</span> <span style="color: #666666">(</span>v<span style="color: #666666">,</span> s1<span style="color: #666666">)</span> <span style="color: #008000; font-weight: bold">=</span> <span style="color: #008000; font-weight: bold">this</span><span style="color: #666666">.</span>runS<span style="color: #666666">(</span>s<span style="color: #666666">)</span>
+    <span style="color: #666666">(</span>f<span style="color: #666666">(</span>v<span style="color: #666666">),</span> s1<span style="color: #666666">)</span>
+  <span style="color: #666666">})</span>
+
+  <span style="color: #008000; font-weight: bold">def</span> flatMap<span style="color: #666666">[</span><span style="color: #B00040">B</span><span style="color: #666666">](</span>f<span style="color: #008000; font-weight: bold">:</span> <span style="color: #B00040">A</span> <span style="color: #666666">=&gt;</span> <span style="color: #0000FF; font-weight: bold">State</span><span style="color: #666666">[</span><span style="color: #B00040">S</span>,<span style="color: #B00040">B</span><span style="color: #666666">])</span><span style="color: #008000; font-weight: bold">:</span> <span style="color: #B00040">State</span><span style="color: #666666">[</span><span style="color: #B00040">S</span>,<span style="color: #B00040">B</span><span style="color: #666666">]</span> <span style="color: #008000; font-weight: bold">=</span>
+    <span style="color: #0000FF; font-weight: bold">State</span><span style="color: #666666">[</span><span style="color: #B00040">S</span>,<span style="color: #B00040">B</span><span style="color: #666666">](</span>s <span style="color: #008000; font-weight: bold">=&gt;</span> <span style="color: #666666">{</span>
+        <span style="color: #008000; font-weight: bold">val</span> <span style="color: #666666">(</span>a<span style="color: #666666">,</span> s1<span style="color: #666666">)</span> <span style="color: #008000; font-weight: bold">=</span> <span style="color: #008000; font-weight: bold">this</span><span style="color: #666666">.</span>runS<span style="color: #666666">(</span>s<span style="color: #666666">)</span>
+        f<span style="color: #666666">(</span>a<span style="color: #666666">)</span> runS s1
+    <span style="color: #666666">})</span>
+<span style="color: #666666">}</span>
+
+<span style="color: #008000; font-weight: bold">def</span> getState<span style="color: #666666">[</span><span style="color: #B00040">S</span><span style="color: #666666">]</span><span style="color: #008000; font-weight: bold">:</span> <span style="color: #B00040">State</span><span style="color: #666666">[</span><span style="color: #B00040">S</span>,<span style="color: #B00040">S</span><span style="color: #666666">]</span> <span style="color: #008000; font-weight: bold">=</span> <span style="color: #0000FF; font-weight: bold">State</span><span style="color: #666666">(</span>s <span style="color: #008000; font-weight: bold">=&gt;</span> <span style="color: #666666">(</span>s<span style="color: #666666">,</span> s<span style="color: #666666">))</span>
+
+<span style="color: #008000; font-weight: bold">def</span> setState<span style="color: #666666">[</span><span style="color: #B00040">S</span><span style="color: #666666">](</span>s<span style="color: #008000; font-weight: bold">:</span> <span style="color: #B00040">S</span><span style="color: #666666">)</span><span style="color: #008000; font-weight: bold">:</span> <span style="color: #B00040">State</span><span style="color: #666666">[</span><span style="color: #B00040">S</span>,<span style="color: #B00040">Unit</span><span style="color: #666666">]</span> <span style="color: #008000; font-weight: bold">=</span>
+  <span style="color: #0000FF; font-weight: bold">State</span><span style="color: #666666">(</span><span style="color: #008000; font-weight: bold">_</span> <span style="color: #008000; font-weight: bold">=&gt;</span> <span style="color: #666666">((),</span> s<span style="color: #666666">))</span>
+
+<span style="color: #008000; font-weight: bold">def</span> pureState<span style="color: #666666">[</span><span style="color: #B00040">S</span>, <span style="color: #B00040">A</span><span style="color: #666666">](</span>a<span style="color: #008000; font-weight: bold">:</span> <span style="color: #B00040">A</span><span style="color: #666666">)</span><span style="color: #008000; font-weight: bold">:</span> <span style="color: #B00040">State</span><span style="color: #666666">[</span><span style="color: #B00040">S</span>,<span style="color: #B00040">A</span><span style="color: #666666">]</span> <span style="color: #008000; font-weight: bold">=</span> <i class="conum" data-value="1"></i><b>(1)</b>
+  <span style="color: #0000FF; font-weight: bold">State</span><span style="color: #666666">(</span>s <span style="color: #008000; font-weight: bold">=&gt;</span> <span style="color: #666666">(</span>a<span style="color: #666666">,</span> s<span style="color: #666666">))</span>
+
+<span style="color: #008000; font-weight: bold">def</span> zipIndex<span style="color: #666666">[</span><span style="color: #B00040">V</span><span style="color: #666666">](</span>as<span style="color: #008000; font-weight: bold">:</span> <span style="color: #B00040">List</span><span style="color: #666666">[</span><span style="color: #B00040">V</span><span style="color: #666666">])</span><span style="color: #008000; font-weight: bold">:</span> <span style="color: #B00040">List</span><span style="color: #666666">[(</span><span style="color: #B00040">Int</span>, <span style="color: #B00040">V</span><span style="color: #666666">)]</span> <span style="color: #008000; font-weight: bold">=</span>
+  as<span style="color: #666666">.</span>foldLeft<span style="color: #666666">(</span>pureState<span style="color: #666666">[</span><span style="color: #B00040">Int</span>, <span style="color: #B00040">List</span><span style="color: #666666">[(</span><span style="color: #B00040">Int</span>,<span style="color: #B00040">V</span><span style="color: #666666">)]](</span><span style="color: #0000FF; font-weight: bold">List</span><span style="color: #666666">()))</span> <i class="conum" data-value="2"></i><b>(2)</b>
+  <span style="color: #666666">((</span>acc<span style="color: #666666">,</span> v<span style="color: #666666">)</span> <span style="color: #008000; font-weight: bold">=&gt;</span> <span style="color: #008000; font-weight: bold">for</span> <span style="color: #666666">{</span>
+      xs <span style="color: #008000; font-weight: bold">&lt;-</span> acc
+      n  <span style="color: #008000; font-weight: bold">&lt;-</span> getState<span style="color: #666666">[</span><span style="color: #B00040">Int</span><span style="color: #666666">]</span>
+      <span style="color: #008000; font-weight: bold">_</span>  <span style="color: #008000; font-weight: bold">&lt;-</span> setState<span style="color: #666666">[</span><span style="color: #B00040">Int</span><span style="color: #666666">](</span>n <span style="color: #666666">+</span> <span style="color: #666666">1)</span> <i class="conum" data-value="3"></i><b>(3)</b>
+  <span style="color: #666666">}</span> <span style="color: #008000; font-weight: bold">yield</span> <span style="color: #666666">(</span>n<span style="color: #666666">,</span>v<span style="color: #666666">)::</span>xs<span style="color: #666666">)</span>
+  <span style="color: #666666">.</span>runS<span style="color: #666666">(0).</span>_1<span style="color: #666666">.</span>reverse
+</td></tr></table></code></pre>
+</div>
+</div>
+<div class="colist arabic">
+<table>
+<tr>
+<td><i class="conum" data-value="1"></i><b>1</b></td>
+<td>The <code>State</code> case class and <code>pureState</code> forms a monad.</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="2"></i><b>2</b></td>
+<td>Folding over the input list, where the return value of the fold is a <code>State</code> action.</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="3"></i><b>3</b></td>
+<td>Using for comprehension to calculate the next index,
+and store it back to the <code>State</code> action.</td>
+</tr>
+</table>
+</div>
+<div class="paragraph">
+<p>So far so good.
+The implementation of <code>zipIndex</code> looks like a typical monadic computation
+where different functions are composed together inside a monadic context.
+We have a <code>State</code> action which contains a state and a value.
+In this case, the state is the index we are going to assign,
+and the value is the list of tuples.
+Such implementation is fairly standard even in Haskell.
+I have implemented the example in <a href="https://gist.github.com/marcoy/b15b46884f56ea57d9712034b6ade951">Haskell</a>.
+Here is <code>zipIndex</code> in Haskell.</p>
+</div>
+<div class="listingblock">
+<div class="title">zipIndex in Haskell</div>
+<div class="content">
+<pre class="pygments highlight"><code data-lang="haskell"><table class="pyhltable"><tr><td><div class="linenodiv" style="background-color: #f0f0f0; padding-right: 10px"> 1
+ 2
+ 3
+ 4
+ 5
+ 6
+ 7
+ 8
+ 9
+10
+11</div></td><td class="code"><span style="color: #0000FF">zipIndex</span> <span style="color: #AA22FF; font-weight: bold">::</span> [a] <span style="color: #AA22FF; font-weight: bold">-&gt;</span> ([(<span style="color: #B00040">Int</span>, a)], <span style="color: #B00040">Int</span>)
+<span style="color: #0000FF">zipIndex</span> xs <span style="color: #AA22FF; font-weight: bold">=</span> run (innerZipIndex xs) <span style="color: #666666">0</span>
+  <span style="color: #008000; font-weight: bold">where</span>
+    innerZipIndex <span style="color: #AA22FF; font-weight: bold">::</span> [a] <span style="color: #AA22FF; font-weight: bold">-&gt;</span> <span style="color: #B00040">MyState</span> <span style="color: #B00040">Int</span> [(<span style="color: #B00040">Int</span>, a)]
+    innerZipIndex xs <span style="color: #AA22FF; font-weight: bold">=</span> foldM step <span style="color: #B00040">[]</span> xs
+
+    step <span style="color: #AA22FF; font-weight: bold">::</span> [(<span style="color: #B00040">Int</span>, a)] <span style="color: #AA22FF; font-weight: bold">-&gt;</span> a <span style="color: #AA22FF; font-weight: bold">-&gt;</span> <span style="color: #B00040">MyState</span> <span style="color: #B00040">Int</span> [(<span style="color: #B00040">Int</span>, a)]
+    step acc e <span style="color: #AA22FF; font-weight: bold">=</span> <span style="color: #008000; font-weight: bold">do</span> <i class="conum" data-value="1"></i><b>(1)</b>
+        i <span style="color: #AA22FF; font-weight: bold">&lt;-</span> getState
+        setState (i <span style="color: #666666">+</span> <span style="color: #666666">1</span>)
+        return <span style="color: #666666">$</span> (i, e) <span style="color: #B00040">:</span> acc
+</td></tr></table></code></pre>
+</div>
+</div>
+<div class="colist arabic">
+<table>
+<tr>
+<td><i class="conum" data-value="1"></i><b>1</b></td>
+<td>Get and update the state inside <code>MyState</code> monad.</td>
+</tr>
+</table>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_the-problem">The Problem</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>There is, however, a major problem in the Scala implementation&#8201;&#8212;&#8201;it is not stack safe.
+Meaning given a sufficiently large input list,
+it will throw a <code>StackOverflowError</code>.</p>
+</div>
+<div class="paragraph">
+<p>Let&#8217;s take a closer look at why it is overflowing the stack.
+For that, I will focus on two functions,
+<code>zipIndex</code> and the implementation of <code>flatMap</code> for <code>State</code>.</p>
+</div>
+<div class="listingblock">
+<div class="title">zipIndex and flatMap</div>
+<div class="content">
+<pre class="pygments highlight"><code data-lang="scala"><table class="pyhltable"><tr><td><div class="linenodiv" style="background-color: #f0f0f0; padding-right: 10px"> 1
+ 2
+ 3
+ 4
+ 5
+ 6
+ 7
+ 8
+ 9
+10
+11
+12
+13
+14</div></td><td class="code"><span style="color: #008000; font-weight: bold">def</span> flatMap<span style="color: #666666">[</span><span style="color: #B00040">B</span><span style="color: #666666">](</span>f<span style="color: #008000; font-weight: bold">:</span> <span style="color: #B00040">A</span> <span style="color: #666666">=&gt;</span> <span style="color: #0000FF; font-weight: bold">State</span><span style="color: #666666">[</span><span style="color: #B00040">S</span>,<span style="color: #B00040">B</span><span style="color: #666666">])</span><span style="color: #008000; font-weight: bold">:</span> <span style="color: #B00040">State</span><span style="color: #666666">[</span><span style="color: #B00040">S</span>,<span style="color: #B00040">B</span><span style="color: #666666">]</span> <span style="color: #008000; font-weight: bold">=</span>
+  <span style="color: #0000FF; font-weight: bold">State</span><span style="color: #666666">[</span><span style="color: #B00040">S</span>,<span style="color: #B00040">B</span><span style="color: #666666">](</span>s <span style="color: #008000; font-weight: bold">=&gt;</span> <span style="color: #666666">{</span>
+    <span style="color: #008000; font-weight: bold">val</span> <span style="color: #666666">(</span>a<span style="color: #666666">,</span> s1<span style="color: #666666">)</span> <span style="color: #008000; font-weight: bold">=</span> <span style="color: #008000; font-weight: bold">this</span><span style="color: #666666">.</span>runS<span style="color: #666666">(</span>s<span style="color: #666666">)</span>
+    f<span style="color: #666666">(</span>a<span style="color: #666666">)</span> runS s1
+  <span style="color: #666666">})</span>
+
+<span style="color: #008000; font-weight: bold">def</span> zipIndex<span style="color: #666666">[</span><span style="color: #B00040">V</span><span style="color: #666666">](</span>as<span style="color: #008000; font-weight: bold">:</span> <span style="color: #B00040">List</span><span style="color: #666666">[</span><span style="color: #B00040">V</span><span style="color: #666666">])</span><span style="color: #008000; font-weight: bold">:</span> <span style="color: #B00040">List</span><span style="color: #666666">[(</span><span style="color: #B00040">Int</span>, <span style="color: #B00040">V</span><span style="color: #666666">)]</span> <span style="color: #008000; font-weight: bold">=</span>
+  as<span style="color: #666666">.</span>foldLeft<span style="color: #666666">(</span>pureState<span style="color: #666666">[</span><span style="color: #B00040">Int</span>, <span style="color: #B00040">List</span><span style="color: #666666">[(</span><span style="color: #B00040">Int</span>,<span style="color: #B00040">V</span><span style="color: #666666">)]](</span><span style="color: #0000FF; font-weight: bold">List</span><span style="color: #666666">()))</span>
+  <span style="color: #666666">((</span>acc<span style="color: #666666">,</span> v<span style="color: #666666">)</span> <span style="color: #008000; font-weight: bold">=&gt;</span> <span style="color: #008000; font-weight: bold">for</span> <span style="color: #666666">{</span>
+      xs <span style="color: #008000; font-weight: bold">&lt;-</span> acc
+      n  <span style="color: #008000; font-weight: bold">&lt;-</span> getState<span style="color: #666666">[</span><span style="color: #B00040">Int</span><span style="color: #666666">]</span>
+      <span style="color: #008000; font-weight: bold">_</span>  <span style="color: #008000; font-weight: bold">&lt;-</span> setState<span style="color: #666666">[</span><span style="color: #B00040">Int</span><span style="color: #666666">](</span>n <span style="color: #666666">+</span> <span style="color: #666666">1)</span>
+  <span style="color: #666666">}</span> <span style="color: #008000; font-weight: bold">yield</span> <span style="color: #666666">(</span>n<span style="color: #666666">,</span>v<span style="color: #666666">)::</span>xs<span style="color: #666666">)</span>
+  <span style="color: #666666">.</span>runS<span style="color: #666666">(0).</span>_1<span style="color: #666666">.</span>reverse
+</td></tr></table></code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Recall that, the Scala compiler will translation the for-comprehension into calls to <code>flatMap</code>.
+Therefore, for every step of the fold in <code>zipIndex</code>,
+it will call <code>flatMap</code> on the variable <code>acc</code> which is a <code>State</code> action.
+Inside <code>flatMap</code>, a new instance of <code>State</code> will be created,
+and the anonymous function being passed into that new instance of <code>State</code> will close over
+the <em>current</em> instance of <code>State</code> (<code>this</code> line 3),
+so that the <code>runS</code> method can be called.
+Essentially, we are creating a nested stack of <code>State</code> actions as shown in the following screenshot.</p>
+</div>
+<div class="imageblock" style="text-align: center">
+<div class="content">
+<img src="/images/nested-state.png" alt="nested state">
+</div>
+<div class="title">Figure 1. Result of five flatMap calls</div>
+</div>
+<div class="paragraph">
+<p>Going back to the <code>zipIndex</code> example, as we fold over the whole list,
+we are creating a stack of <code>State</code> actions linear to the number of elements in the list.
+So, when we evaluate the stack of <code>State</code> actions by calling <code>runS</code>,
+before <code>runS</code> returns, it will call <code>runS</code> of its inner <code>State</code> action,
+and that call to inner <code>runS</code> will call its inner State action&#8217;s <code>runS</code> and so on and so forth.
+As the call goes deeper and deeper, it keeps creating new stack frames.
+Eventually, there are more stack frames that the JVM can allow.</p>
+</div>
+<div class="paragraph">
+<p>On my MBP, the <code>zipIndex</code> function will throw <code>StackOverflowError</code>
+when the input is a list of around 4000 integers.
+A list of about 4000 elements is not that big of an input,
+such limitation makes functional programming in Scala not practical.
+But fear not, there are solutions mentioned in the paper to the stack safety problem,
+and I will talk about them in the subsequent posts.</p>
+</div>
+</div>
+</div>
+  </div>
+</article>
+
+      </div>
+    </div>
+
+    <footer class="site-footer">
+
+  <div class="wrapper">
+
+    <h2 class="footer-heading small-site-title">Marco Yuen</h2>
+
+    <div class="footer-col-wrapper">
+      <div class="footer-col footer-col-1">
+        <ul class="contact-list footer-content">
+          <li>Powered By
+            <a href="https://jekyllrb.com/">Jekyll</a>
+          </li>
+          <li>
+            using <a href="http://github.com/hemangsk/Gravity">Gravity</a>
+          </li>
+        </ul>
+      </div>
+
+      <div class="footer-col footer-col-2 footer-content">
+        <ul class="social-media-list">
+          
+          <li>
+            <a href="https://github.com/marcoy"><span class="fa fa-github-alt fa-lg fa-fw"></span><span class="username">marcoy</span></a>
+
+          </li>
+          
+
+          
+          <li>
+            <a href="https://gitlab.com/marcoy"><span class="fa fa-gitlab fa-lg fa-fw"></span><span class="username">marcoy</span></a>
+
+          </li>
+          
+
+          
+          <li>
+            <a href="https://www.linkedin.com/in/marcoyuen"><span class="fa fa-linkedin fa-lg fa-fw"></span><span class="username">marcoyuen</span></a>
+
+          </li>
+          
+
+          
+          <li>
+            <a href="https://twitter.com/marcoyyk"><span class="fa fa-twitter fa-lg fa-fw"></span><span class="username">marcoyyk</span></a>
+
+          </li>
+          
+        </ul>
+      </div>
+
+      <div class="footer-col footer-col-3 site-description">
+        <p>Life and Programming</p>
+      </div>
+    </div>
+
+  </div>
+
+</footer>
+
+
+  </body>
+
+</html>

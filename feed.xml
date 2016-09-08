@@ -5,9 +5,288 @@
     <description>Life and Programming</description>
     <link>http://www.marcoyuen.com/</link>
     <atom:link href="http://www.marcoyuen.com/feed.xml" rel="self" type="application/rss+xml"/>
-    <pubDate>Wed, 07 Sep 2016 19:34:09 -0400</pubDate>
-    <lastBuildDate>Wed, 07 Sep 2016 19:34:09 -0400</lastBuildDate>
+    <pubDate>Thu, 08 Sep 2016 16:44:35 -0400</pubDate>
+    <lastBuildDate>Thu, 08 Sep 2016 16:44:35 -0400</lastBuildDate>
     <generator>Jekyll v3.2.1</generator>
+    
+      <item>
+        <title>Stackless Scala, Part 1: The Problem</title>
+        <description>&lt;div class=&quot;sect1&quot;&gt;
+&lt;h2 id=&quot;_motivation&quot;&gt;Motivation&lt;/h2&gt;
+&lt;div class=&quot;sectionbody&quot;&gt;
+&lt;div class=&quot;paragraph&quot;&gt;
+&lt;p&gt;I am reading the paper, &lt;a href=&quot;http://blog.higher-order.com/assets/trampolines.pdf&quot;&gt;Stackless Scala with Free Monad&lt;/a&gt;,
+by &lt;a href=&quot;http://blog.higher-order.com/&quot; target=&quot;_blank&quot;&gt;Rúnar Bjarnason&lt;/a&gt;.&lt;/p&gt;
+&lt;/div&gt;
+&lt;div class=&quot;admonitionblock note&quot;&gt;
+&lt;table&gt;
+&lt;tr&gt;
+&lt;td class=&quot;icon&quot;&gt;
+&lt;i class=&quot;fa icon-note&quot; title=&quot;Note&quot;&gt;&lt;/i&gt;
+&lt;/td&gt;
+&lt;td class=&quot;content&quot;&gt;
+&lt;div class=&quot;paragraph&quot;&gt;
+&lt;p&gt;Also checkout Rúnar&amp;#8217;s book &lt;a href=&quot;https://www.manning.com/books/functional-programming-in-scala&quot;&gt;Functional Programming in Scala&lt;/a&gt;.
+The book is excellent.&lt;/p&gt;
+&lt;/div&gt;
+&lt;/td&gt;
+&lt;/tr&gt;
+&lt;/table&gt;
+&lt;/div&gt;
+&lt;div class=&quot;paragraph&quot;&gt;
+&lt;p&gt;In the paper,
+he illustrates a shortcoming if one were to write Scala in a functional style.
+I am a huge proponent of functional programming.
+Having been dabbling in Clojure, Haskell, and, now, Scala.
+Being able to write Scala in a functional way is very important to me.
+So, I am very interested in how the problem is solved in Scala.
+I believe the patterns introduced in the paper are being used by libraries like
+&lt;a href=&quot;https://github.com/typelevel/cats&quot;&gt;cats&lt;/a&gt; and &lt;a href=&quot;https://github.com/scalaz/scalaz&quot;&gt;scalaz&lt;/a&gt;.&lt;/p&gt;
+&lt;/div&gt;
+&lt;div class=&quot;paragraph&quot;&gt;
+&lt;p&gt;Most importantly,
+these posts will serve as a study notes for myself.
+As a side effect, hopefully, these will be helpful to others as well.&lt;/p&gt;
+&lt;/div&gt;
+&lt;/div&gt;
+&lt;/div&gt;
+&lt;div class=&quot;sect1&quot;&gt;
+&lt;h2 id=&quot;_introduction&quot;&gt;Introduction&lt;/h2&gt;
+&lt;div class=&quot;sectionbody&quot;&gt;
+&lt;div class=&quot;paragraph&quot;&gt;
+&lt;p&gt;The example below is copied straight from the paper,
+and it is used to illustrate a shortcoming of writing functional style Scala.
+Let&amp;#8217;s go over it.&lt;/p&gt;
+&lt;/div&gt;
+&lt;div class=&quot;paragraph&quot;&gt;
+&lt;p&gt;The example given in the paper describes a function that zips every element of a list with its
+index.
+The &lt;code&gt;zipIndex&lt;/code&gt; function will traverse the given list while maintaining some state.
+The state being the index.
+So if the list &lt;code&gt;List(10, 20, 30)&lt;/code&gt; is passed into &lt;code&gt;zipIndex&lt;/code&gt;,
+the return value will be &lt;code&gt;List((0,10), (1,20), (2,30))&lt;/code&gt;
+where the first position of the tuples are the indices.
+A &lt;code&gt;State&lt;/code&gt; action is used to keep track of the state as well as the final return value.
+The code for &lt;code&gt;State&lt;/code&gt; and &lt;code&gt;zipIndex&lt;/code&gt; is shown below.&lt;/p&gt;
+&lt;/div&gt;
+&lt;div class=&quot;listingblock&quot;&gt;
+&lt;div class=&quot;content&quot;&gt;
+&lt;pre class=&quot;pygments highlight&quot;&gt;&lt;code data-lang=&quot;scala&quot;&gt;&lt;table class=&quot;pyhltable&quot;&gt;&lt;tr&gt;&lt;td&gt;&lt;div class=&quot;linenodiv&quot; style=&quot;background-color: #f0f0f0; padding-right: 10px&quot;&gt; 1
+ 2
+ 3
+ 4
+ 5
+ 6
+ 7
+ 8
+ 9
+10
+11
+12
+13
+14
+15
+16
+17
+18
+19
+20
+21
+22
+23
+24
+25
+26
+27
+28
+29&lt;/div&gt;&lt;/td&gt;&lt;td class=&quot;code&quot;&gt;&lt;span style=&quot;color: #008000; font-weight: bold&quot;&gt;case&lt;/span&gt; &lt;span style=&quot;color: #008000; font-weight: bold&quot;&gt;class&lt;/span&gt; &lt;span style=&quot;color: #0000FF; font-weight: bold&quot;&gt;State&lt;/span&gt;&lt;span style=&quot;color: #666666&quot;&gt;[&lt;/span&gt;&lt;span style=&quot;color: #B00040&quot;&gt;S&lt;/span&gt;,&lt;span style=&quot;color: #B00040&quot;&gt;+A&lt;/span&gt;&lt;span style=&quot;color: #666666&quot;&gt;](&lt;/span&gt;runS&lt;span style=&quot;color: #008000; font-weight: bold&quot;&gt;:&lt;/span&gt; &lt;span style=&quot;color: #B00040&quot;&gt;S&lt;/span&gt; &lt;span style=&quot;color: #666666&quot;&gt;=&amp;gt;&lt;/span&gt; &lt;span style=&quot;color: #666666&quot;&gt;(&lt;/span&gt;A&lt;span style=&quot;color: #666666&quot;&gt;,&lt;/span&gt; S&lt;span style=&quot;color: #666666&quot;&gt;))&lt;/span&gt; &lt;span style=&quot;color: #666666&quot;&gt;{&lt;/span&gt; &lt;i class=&quot;conum&quot; data-value=&quot;1&quot;&gt;&lt;/i&gt;&lt;b&gt;(1)&lt;/b&gt;
+  &lt;span style=&quot;color: #008000; font-weight: bold&quot;&gt;def&lt;/span&gt; map&lt;span style=&quot;color: #666666&quot;&gt;[&lt;/span&gt;&lt;span style=&quot;color: #B00040&quot;&gt;B&lt;/span&gt;&lt;span style=&quot;color: #666666&quot;&gt;](&lt;/span&gt;f&lt;span style=&quot;color: #008000; font-weight: bold&quot;&gt;:&lt;/span&gt; &lt;span style=&quot;color: #B00040&quot;&gt;A&lt;/span&gt; &lt;span style=&quot;color: #666666&quot;&gt;=&amp;gt;&lt;/span&gt; B&lt;span style=&quot;color: #666666&quot;&gt;)&lt;/span&gt; &lt;span style=&quot;color: #008000; font-weight: bold&quot;&gt;=&lt;/span&gt; &lt;span style=&quot;color: #0000FF; font-weight: bold&quot;&gt;State&lt;/span&gt;&lt;span style=&quot;color: #666666&quot;&gt;[&lt;/span&gt;&lt;span style=&quot;color: #B00040&quot;&gt;S&lt;/span&gt;,&lt;span style=&quot;color: #B00040&quot;&gt;B&lt;/span&gt;&lt;span style=&quot;color: #666666&quot;&gt;](&lt;/span&gt;s &lt;span style=&quot;color: #008000; font-weight: bold&quot;&gt;=&amp;gt;&lt;/span&gt; &lt;span style=&quot;color: #666666&quot;&gt;{&lt;/span&gt;
+    &lt;span style=&quot;color: #008000; font-weight: bold&quot;&gt;val&lt;/span&gt; &lt;span style=&quot;color: #666666&quot;&gt;(&lt;/span&gt;v&lt;span style=&quot;color: #666666&quot;&gt;,&lt;/span&gt; s1&lt;span style=&quot;color: #666666&quot;&gt;)&lt;/span&gt; &lt;span style=&quot;color: #008000; font-weight: bold&quot;&gt;=&lt;/span&gt; &lt;span style=&quot;color: #008000; font-weight: bold&quot;&gt;this&lt;/span&gt;&lt;span style=&quot;color: #666666&quot;&gt;.&lt;/span&gt;runS&lt;span style=&quot;color: #666666&quot;&gt;(&lt;/span&gt;s&lt;span style=&quot;color: #666666&quot;&gt;)&lt;/span&gt;
+    &lt;span style=&quot;color: #666666&quot;&gt;(&lt;/span&gt;f&lt;span style=&quot;color: #666666&quot;&gt;(&lt;/span&gt;v&lt;span style=&quot;color: #666666&quot;&gt;),&lt;/span&gt; s1&lt;span style=&quot;color: #666666&quot;&gt;)&lt;/span&gt;
+  &lt;span style=&quot;color: #666666&quot;&gt;})&lt;/span&gt;
+
+  &lt;span style=&quot;color: #008000; font-weight: bold&quot;&gt;def&lt;/span&gt; flatMap&lt;span style=&quot;color: #666666&quot;&gt;[&lt;/span&gt;&lt;span style=&quot;color: #B00040&quot;&gt;B&lt;/span&gt;&lt;span style=&quot;color: #666666&quot;&gt;](&lt;/span&gt;f&lt;span style=&quot;color: #008000; font-weight: bold&quot;&gt;:&lt;/span&gt; &lt;span style=&quot;color: #B00040&quot;&gt;A&lt;/span&gt; &lt;span style=&quot;color: #666666&quot;&gt;=&amp;gt;&lt;/span&gt; &lt;span style=&quot;color: #0000FF; font-weight: bold&quot;&gt;State&lt;/span&gt;&lt;span style=&quot;color: #666666&quot;&gt;[&lt;/span&gt;&lt;span style=&quot;color: #B00040&quot;&gt;S&lt;/span&gt;,&lt;span style=&quot;color: #B00040&quot;&gt;B&lt;/span&gt;&lt;span style=&quot;color: #666666&quot;&gt;])&lt;/span&gt;&lt;span style=&quot;color: #008000; font-weight: bold&quot;&gt;:&lt;/span&gt; &lt;span style=&quot;color: #B00040&quot;&gt;State&lt;/span&gt;&lt;span style=&quot;color: #666666&quot;&gt;[&lt;/span&gt;&lt;span style=&quot;color: #B00040&quot;&gt;S&lt;/span&gt;,&lt;span style=&quot;color: #B00040&quot;&gt;B&lt;/span&gt;&lt;span style=&quot;color: #666666&quot;&gt;]&lt;/span&gt; &lt;span style=&quot;color: #008000; font-weight: bold&quot;&gt;=&lt;/span&gt;
+    &lt;span style=&quot;color: #0000FF; font-weight: bold&quot;&gt;State&lt;/span&gt;&lt;span style=&quot;color: #666666&quot;&gt;[&lt;/span&gt;&lt;span style=&quot;color: #B00040&quot;&gt;S&lt;/span&gt;,&lt;span style=&quot;color: #B00040&quot;&gt;B&lt;/span&gt;&lt;span style=&quot;color: #666666&quot;&gt;](&lt;/span&gt;s &lt;span style=&quot;color: #008000; font-weight: bold&quot;&gt;=&amp;gt;&lt;/span&gt; &lt;span style=&quot;color: #666666&quot;&gt;{&lt;/span&gt;
+        &lt;span style=&quot;color: #008000; font-weight: bold&quot;&gt;val&lt;/span&gt; &lt;span style=&quot;color: #666666&quot;&gt;(&lt;/span&gt;a&lt;span style=&quot;color: #666666&quot;&gt;,&lt;/span&gt; s1&lt;span style=&quot;color: #666666&quot;&gt;)&lt;/span&gt; &lt;span style=&quot;color: #008000; font-weight: bold&quot;&gt;=&lt;/span&gt; &lt;span style=&quot;color: #008000; font-weight: bold&quot;&gt;this&lt;/span&gt;&lt;span style=&quot;color: #666666&quot;&gt;.&lt;/span&gt;runS&lt;span style=&quot;color: #666666&quot;&gt;(&lt;/span&gt;s&lt;span style=&quot;color: #666666&quot;&gt;)&lt;/span&gt;
+        f&lt;span style=&quot;color: #666666&quot;&gt;(&lt;/span&gt;a&lt;span style=&quot;color: #666666&quot;&gt;)&lt;/span&gt; runS s1
+    &lt;span style=&quot;color: #666666&quot;&gt;})&lt;/span&gt;
+&lt;span style=&quot;color: #666666&quot;&gt;}&lt;/span&gt;
+
+&lt;span style=&quot;color: #008000; font-weight: bold&quot;&gt;def&lt;/span&gt; getState&lt;span style=&quot;color: #666666&quot;&gt;[&lt;/span&gt;&lt;span style=&quot;color: #B00040&quot;&gt;S&lt;/span&gt;&lt;span style=&quot;color: #666666&quot;&gt;]&lt;/span&gt;&lt;span style=&quot;color: #008000; font-weight: bold&quot;&gt;:&lt;/span&gt; &lt;span style=&quot;color: #B00040&quot;&gt;State&lt;/span&gt;&lt;span style=&quot;color: #666666&quot;&gt;[&lt;/span&gt;&lt;span style=&quot;color: #B00040&quot;&gt;S&lt;/span&gt;,&lt;span style=&quot;color: #B00040&quot;&gt;S&lt;/span&gt;&lt;span style=&quot;color: #666666&quot;&gt;]&lt;/span&gt; &lt;span style=&quot;color: #008000; font-weight: bold&quot;&gt;=&lt;/span&gt; &lt;span style=&quot;color: #0000FF; font-weight: bold&quot;&gt;State&lt;/span&gt;&lt;span style=&quot;color: #666666&quot;&gt;(&lt;/span&gt;s &lt;span style=&quot;color: #008000; font-weight: bold&quot;&gt;=&amp;gt;&lt;/span&gt; &lt;span style=&quot;color: #666666&quot;&gt;(&lt;/span&gt;s&lt;span style=&quot;color: #666666&quot;&gt;,&lt;/span&gt; s&lt;span style=&quot;color: #666666&quot;&gt;))&lt;/span&gt;
+
+&lt;span style=&quot;color: #008000; font-weight: bold&quot;&gt;def&lt;/span&gt; setState&lt;span style=&quot;color: #666666&quot;&gt;[&lt;/span&gt;&lt;span style=&quot;color: #B00040&quot;&gt;S&lt;/span&gt;&lt;span style=&quot;color: #666666&quot;&gt;](&lt;/span&gt;s&lt;span style=&quot;color: #008000; font-weight: bold&quot;&gt;:&lt;/span&gt; &lt;span style=&quot;color: #B00040&quot;&gt;S&lt;/span&gt;&lt;span style=&quot;color: #666666&quot;&gt;)&lt;/span&gt;&lt;span style=&quot;color: #008000; font-weight: bold&quot;&gt;:&lt;/span&gt; &lt;span style=&quot;color: #B00040&quot;&gt;State&lt;/span&gt;&lt;span style=&quot;color: #666666&quot;&gt;[&lt;/span&gt;&lt;span style=&quot;color: #B00040&quot;&gt;S&lt;/span&gt;,&lt;span style=&quot;color: #B00040&quot;&gt;Unit&lt;/span&gt;&lt;span style=&quot;color: #666666&quot;&gt;]&lt;/span&gt; &lt;span style=&quot;color: #008000; font-weight: bold&quot;&gt;=&lt;/span&gt;
+  &lt;span style=&quot;color: #0000FF; font-weight: bold&quot;&gt;State&lt;/span&gt;&lt;span style=&quot;color: #666666&quot;&gt;(&lt;/span&gt;&lt;span style=&quot;color: #008000; font-weight: bold&quot;&gt;_&lt;/span&gt; &lt;span style=&quot;color: #008000; font-weight: bold&quot;&gt;=&amp;gt;&lt;/span&gt; &lt;span style=&quot;color: #666666&quot;&gt;((),&lt;/span&gt; s&lt;span style=&quot;color: #666666&quot;&gt;))&lt;/span&gt;
+
+&lt;span style=&quot;color: #008000; font-weight: bold&quot;&gt;def&lt;/span&gt; pureState&lt;span style=&quot;color: #666666&quot;&gt;[&lt;/span&gt;&lt;span style=&quot;color: #B00040&quot;&gt;S&lt;/span&gt;, &lt;span style=&quot;color: #B00040&quot;&gt;A&lt;/span&gt;&lt;span style=&quot;color: #666666&quot;&gt;](&lt;/span&gt;a&lt;span style=&quot;color: #008000; font-weight: bold&quot;&gt;:&lt;/span&gt; &lt;span style=&quot;color: #B00040&quot;&gt;A&lt;/span&gt;&lt;span style=&quot;color: #666666&quot;&gt;)&lt;/span&gt;&lt;span style=&quot;color: #008000; font-weight: bold&quot;&gt;:&lt;/span&gt; &lt;span style=&quot;color: #B00040&quot;&gt;State&lt;/span&gt;&lt;span style=&quot;color: #666666&quot;&gt;[&lt;/span&gt;&lt;span style=&quot;color: #B00040&quot;&gt;S&lt;/span&gt;,&lt;span style=&quot;color: #B00040&quot;&gt;A&lt;/span&gt;&lt;span style=&quot;color: #666666&quot;&gt;]&lt;/span&gt; &lt;span style=&quot;color: #008000; font-weight: bold&quot;&gt;=&lt;/span&gt; &lt;i class=&quot;conum&quot; data-value=&quot;1&quot;&gt;&lt;/i&gt;&lt;b&gt;(1)&lt;/b&gt;
+  &lt;span style=&quot;color: #0000FF; font-weight: bold&quot;&gt;State&lt;/span&gt;&lt;span style=&quot;color: #666666&quot;&gt;(&lt;/span&gt;s &lt;span style=&quot;color: #008000; font-weight: bold&quot;&gt;=&amp;gt;&lt;/span&gt; &lt;span style=&quot;color: #666666&quot;&gt;(&lt;/span&gt;a&lt;span style=&quot;color: #666666&quot;&gt;,&lt;/span&gt; s&lt;span style=&quot;color: #666666&quot;&gt;))&lt;/span&gt;
+
+&lt;span style=&quot;color: #008000; font-weight: bold&quot;&gt;def&lt;/span&gt; zipIndex&lt;span style=&quot;color: #666666&quot;&gt;[&lt;/span&gt;&lt;span style=&quot;color: #B00040&quot;&gt;V&lt;/span&gt;&lt;span style=&quot;color: #666666&quot;&gt;](&lt;/span&gt;as&lt;span style=&quot;color: #008000; font-weight: bold&quot;&gt;:&lt;/span&gt; &lt;span style=&quot;color: #B00040&quot;&gt;List&lt;/span&gt;&lt;span style=&quot;color: #666666&quot;&gt;[&lt;/span&gt;&lt;span style=&quot;color: #B00040&quot;&gt;V&lt;/span&gt;&lt;span style=&quot;color: #666666&quot;&gt;])&lt;/span&gt;&lt;span style=&quot;color: #008000; font-weight: bold&quot;&gt;:&lt;/span&gt; &lt;span style=&quot;color: #B00040&quot;&gt;List&lt;/span&gt;&lt;span style=&quot;color: #666666&quot;&gt;[(&lt;/span&gt;&lt;span style=&quot;color: #B00040&quot;&gt;Int&lt;/span&gt;, &lt;span style=&quot;color: #B00040&quot;&gt;V&lt;/span&gt;&lt;span style=&quot;color: #666666&quot;&gt;)]&lt;/span&gt; &lt;span style=&quot;color: #008000; font-weight: bold&quot;&gt;=&lt;/span&gt;
+  as&lt;span style=&quot;color: #666666&quot;&gt;.&lt;/span&gt;foldLeft&lt;span style=&quot;color: #666666&quot;&gt;(&lt;/span&gt;pureState&lt;span style=&quot;color: #666666&quot;&gt;[&lt;/span&gt;&lt;span style=&quot;color: #B00040&quot;&gt;Int&lt;/span&gt;, &lt;span style=&quot;color: #B00040&quot;&gt;List&lt;/span&gt;&lt;span style=&quot;color: #666666&quot;&gt;[(&lt;/span&gt;&lt;span style=&quot;color: #B00040&quot;&gt;Int&lt;/span&gt;,&lt;span style=&quot;color: #B00040&quot;&gt;V&lt;/span&gt;&lt;span style=&quot;color: #666666&quot;&gt;)]](&lt;/span&gt;&lt;span style=&quot;color: #0000FF; font-weight: bold&quot;&gt;List&lt;/span&gt;&lt;span style=&quot;color: #666666&quot;&gt;()))&lt;/span&gt; &lt;i class=&quot;conum&quot; data-value=&quot;2&quot;&gt;&lt;/i&gt;&lt;b&gt;(2)&lt;/b&gt;
+  &lt;span style=&quot;color: #666666&quot;&gt;((&lt;/span&gt;acc&lt;span style=&quot;color: #666666&quot;&gt;,&lt;/span&gt; v&lt;span style=&quot;color: #666666&quot;&gt;)&lt;/span&gt; &lt;span style=&quot;color: #008000; font-weight: bold&quot;&gt;=&amp;gt;&lt;/span&gt; &lt;span style=&quot;color: #008000; font-weight: bold&quot;&gt;for&lt;/span&gt; &lt;span style=&quot;color: #666666&quot;&gt;{&lt;/span&gt;
+      xs &lt;span style=&quot;color: #008000; font-weight: bold&quot;&gt;&amp;lt;-&lt;/span&gt; acc
+      n  &lt;span style=&quot;color: #008000; font-weight: bold&quot;&gt;&amp;lt;-&lt;/span&gt; getState&lt;span style=&quot;color: #666666&quot;&gt;[&lt;/span&gt;&lt;span style=&quot;color: #B00040&quot;&gt;Int&lt;/span&gt;&lt;span style=&quot;color: #666666&quot;&gt;]&lt;/span&gt;
+      &lt;span style=&quot;color: #008000; font-weight: bold&quot;&gt;_&lt;/span&gt;  &lt;span style=&quot;color: #008000; font-weight: bold&quot;&gt;&amp;lt;-&lt;/span&gt; setState&lt;span style=&quot;color: #666666&quot;&gt;[&lt;/span&gt;&lt;span style=&quot;color: #B00040&quot;&gt;Int&lt;/span&gt;&lt;span style=&quot;color: #666666&quot;&gt;](&lt;/span&gt;n &lt;span style=&quot;color: #666666&quot;&gt;+&lt;/span&gt; &lt;span style=&quot;color: #666666&quot;&gt;1)&lt;/span&gt; &lt;i class=&quot;conum&quot; data-value=&quot;3&quot;&gt;&lt;/i&gt;&lt;b&gt;(3)&lt;/b&gt;
+  &lt;span style=&quot;color: #666666&quot;&gt;}&lt;/span&gt; &lt;span style=&quot;color: #008000; font-weight: bold&quot;&gt;yield&lt;/span&gt; &lt;span style=&quot;color: #666666&quot;&gt;(&lt;/span&gt;n&lt;span style=&quot;color: #666666&quot;&gt;,&lt;/span&gt;v&lt;span style=&quot;color: #666666&quot;&gt;)::&lt;/span&gt;xs&lt;span style=&quot;color: #666666&quot;&gt;)&lt;/span&gt;
+  &lt;span style=&quot;color: #666666&quot;&gt;.&lt;/span&gt;runS&lt;span style=&quot;color: #666666&quot;&gt;(0).&lt;/span&gt;_1&lt;span style=&quot;color: #666666&quot;&gt;.&lt;/span&gt;reverse
+&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;&lt;/code&gt;&lt;/pre&gt;
+&lt;/div&gt;
+&lt;/div&gt;
+&lt;div class=&quot;colist arabic&quot;&gt;
+&lt;table&gt;
+&lt;tr&gt;
+&lt;td&gt;&lt;i class=&quot;conum&quot; data-value=&quot;1&quot;&gt;&lt;/i&gt;&lt;b&gt;1&lt;/b&gt;&lt;/td&gt;
+&lt;td&gt;The &lt;code&gt;State&lt;/code&gt; case class and &lt;code&gt;pureState&lt;/code&gt; forms a monad.&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;&lt;i class=&quot;conum&quot; data-value=&quot;2&quot;&gt;&lt;/i&gt;&lt;b&gt;2&lt;/b&gt;&lt;/td&gt;
+&lt;td&gt;Folding over the input list, where the return value of the fold is a &lt;code&gt;State&lt;/code&gt; action.&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;&lt;i class=&quot;conum&quot; data-value=&quot;3&quot;&gt;&lt;/i&gt;&lt;b&gt;3&lt;/b&gt;&lt;/td&gt;
+&lt;td&gt;Using for comprehension to calculate the next index,
+and store it back to the &lt;code&gt;State&lt;/code&gt; action.&lt;/td&gt;
+&lt;/tr&gt;
+&lt;/table&gt;
+&lt;/div&gt;
+&lt;div class=&quot;paragraph&quot;&gt;
+&lt;p&gt;So far so good.
+The implementation of &lt;code&gt;zipIndex&lt;/code&gt; looks like a typical monadic computation
+where different functions are composed together inside a monadic context.
+We have a &lt;code&gt;State&lt;/code&gt; action which contains a state and a value.
+In this case, the state is the index we are going to assign,
+and the value is the list of tuples.
+Such implementation is fairly standard even in Haskell.
+I have implemented the example in &lt;a href=&quot;https://gist.github.com/marcoy/b15b46884f56ea57d9712034b6ade951&quot;&gt;Haskell&lt;/a&gt;.
+Here is &lt;code&gt;zipIndex&lt;/code&gt; in Haskell.&lt;/p&gt;
+&lt;/div&gt;
+&lt;div class=&quot;listingblock&quot;&gt;
+&lt;div class=&quot;title&quot;&gt;zipIndex in Haskell&lt;/div&gt;
+&lt;div class=&quot;content&quot;&gt;
+&lt;pre class=&quot;pygments highlight&quot;&gt;&lt;code data-lang=&quot;haskell&quot;&gt;&lt;table class=&quot;pyhltable&quot;&gt;&lt;tr&gt;&lt;td&gt;&lt;div class=&quot;linenodiv&quot; style=&quot;background-color: #f0f0f0; padding-right: 10px&quot;&gt; 1
+ 2
+ 3
+ 4
+ 5
+ 6
+ 7
+ 8
+ 9
+10
+11&lt;/div&gt;&lt;/td&gt;&lt;td class=&quot;code&quot;&gt;&lt;span style=&quot;color: #0000FF&quot;&gt;zipIndex&lt;/span&gt; &lt;span style=&quot;color: #AA22FF; font-weight: bold&quot;&gt;::&lt;/span&gt; [a] &lt;span style=&quot;color: #AA22FF; font-weight: bold&quot;&gt;-&amp;gt;&lt;/span&gt; ([(&lt;span style=&quot;color: #B00040&quot;&gt;Int&lt;/span&gt;, a)], &lt;span style=&quot;color: #B00040&quot;&gt;Int&lt;/span&gt;)
+&lt;span style=&quot;color: #0000FF&quot;&gt;zipIndex&lt;/span&gt; xs &lt;span style=&quot;color: #AA22FF; font-weight: bold&quot;&gt;=&lt;/span&gt; run (innerZipIndex xs) &lt;span style=&quot;color: #666666&quot;&gt;0&lt;/span&gt;
+  &lt;span style=&quot;color: #008000; font-weight: bold&quot;&gt;where&lt;/span&gt;
+    innerZipIndex &lt;span style=&quot;color: #AA22FF; font-weight: bold&quot;&gt;::&lt;/span&gt; [a] &lt;span style=&quot;color: #AA22FF; font-weight: bold&quot;&gt;-&amp;gt;&lt;/span&gt; &lt;span style=&quot;color: #B00040&quot;&gt;MyState&lt;/span&gt; &lt;span style=&quot;color: #B00040&quot;&gt;Int&lt;/span&gt; [(&lt;span style=&quot;color: #B00040&quot;&gt;Int&lt;/span&gt;, a)]
+    innerZipIndex xs &lt;span style=&quot;color: #AA22FF; font-weight: bold&quot;&gt;=&lt;/span&gt; foldM step &lt;span style=&quot;color: #B00040&quot;&gt;[]&lt;/span&gt; xs
+
+    step &lt;span style=&quot;color: #AA22FF; font-weight: bold&quot;&gt;::&lt;/span&gt; [(&lt;span style=&quot;color: #B00040&quot;&gt;Int&lt;/span&gt;, a)] &lt;span style=&quot;color: #AA22FF; font-weight: bold&quot;&gt;-&amp;gt;&lt;/span&gt; a &lt;span style=&quot;color: #AA22FF; font-weight: bold&quot;&gt;-&amp;gt;&lt;/span&gt; &lt;span style=&quot;color: #B00040&quot;&gt;MyState&lt;/span&gt; &lt;span style=&quot;color: #B00040&quot;&gt;Int&lt;/span&gt; [(&lt;span style=&quot;color: #B00040&quot;&gt;Int&lt;/span&gt;, a)]
+    step acc e &lt;span style=&quot;color: #AA22FF; font-weight: bold&quot;&gt;=&lt;/span&gt; &lt;span style=&quot;color: #008000; font-weight: bold&quot;&gt;do&lt;/span&gt; &lt;i class=&quot;conum&quot; data-value=&quot;1&quot;&gt;&lt;/i&gt;&lt;b&gt;(1)&lt;/b&gt;
+        i &lt;span style=&quot;color: #AA22FF; font-weight: bold&quot;&gt;&amp;lt;-&lt;/span&gt; getState
+        setState (i &lt;span style=&quot;color: #666666&quot;&gt;+&lt;/span&gt; &lt;span style=&quot;color: #666666&quot;&gt;1&lt;/span&gt;)
+        return &lt;span style=&quot;color: #666666&quot;&gt;$&lt;/span&gt; (i, e) &lt;span style=&quot;color: #B00040&quot;&gt;:&lt;/span&gt; acc
+&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;&lt;/code&gt;&lt;/pre&gt;
+&lt;/div&gt;
+&lt;/div&gt;
+&lt;div class=&quot;colist arabic&quot;&gt;
+&lt;table&gt;
+&lt;tr&gt;
+&lt;td&gt;&lt;i class=&quot;conum&quot; data-value=&quot;1&quot;&gt;&lt;/i&gt;&lt;b&gt;1&lt;/b&gt;&lt;/td&gt;
+&lt;td&gt;Get and update the state inside &lt;code&gt;MyState&lt;/code&gt; monad.&lt;/td&gt;
+&lt;/tr&gt;
+&lt;/table&gt;
+&lt;/div&gt;
+&lt;/div&gt;
+&lt;/div&gt;
+&lt;div class=&quot;sect1&quot;&gt;
+&lt;h2 id=&quot;_the-problem&quot;&gt;The Problem&lt;/h2&gt;
+&lt;div class=&quot;sectionbody&quot;&gt;
+&lt;div class=&quot;paragraph&quot;&gt;
+&lt;p&gt;There is, however, a major problem in the Scala implementation&amp;#8201;&amp;#8212;&amp;#8201;it is not stack safe.
+Meaning given a sufficiently large input list,
+it will throw a &lt;code&gt;StackOverflowError&lt;/code&gt;.&lt;/p&gt;
+&lt;/div&gt;
+&lt;div class=&quot;paragraph&quot;&gt;
+&lt;p&gt;Let&amp;#8217;s take a closer look at why it is overflowing the stack.
+For that, I will focus on two functions,
+&lt;code&gt;zipIndex&lt;/code&gt; and the implementation of &lt;code&gt;flatMap&lt;/code&gt; for &lt;code&gt;State&lt;/code&gt;.&lt;/p&gt;
+&lt;/div&gt;
+&lt;div class=&quot;listingblock&quot;&gt;
+&lt;div class=&quot;title&quot;&gt;zipIndex and flatMap&lt;/div&gt;
+&lt;div class=&quot;content&quot;&gt;
+&lt;pre class=&quot;pygments highlight&quot;&gt;&lt;code data-lang=&quot;scala&quot;&gt;&lt;table class=&quot;pyhltable&quot;&gt;&lt;tr&gt;&lt;td&gt;&lt;div class=&quot;linenodiv&quot; style=&quot;background-color: #f0f0f0; padding-right: 10px&quot;&gt; 1
+ 2
+ 3
+ 4
+ 5
+ 6
+ 7
+ 8
+ 9
+10
+11
+12
+13
+14&lt;/div&gt;&lt;/td&gt;&lt;td class=&quot;code&quot;&gt;&lt;span style=&quot;color: #008000; font-weight: bold&quot;&gt;def&lt;/span&gt; flatMap&lt;span style=&quot;color: #666666&quot;&gt;[&lt;/span&gt;&lt;span style=&quot;color: #B00040&quot;&gt;B&lt;/span&gt;&lt;span style=&quot;color: #666666&quot;&gt;](&lt;/span&gt;f&lt;span style=&quot;color: #008000; font-weight: bold&quot;&gt;:&lt;/span&gt; &lt;span style=&quot;color: #B00040&quot;&gt;A&lt;/span&gt; &lt;span style=&quot;color: #666666&quot;&gt;=&amp;gt;&lt;/span&gt; &lt;span style=&quot;color: #0000FF; font-weight: bold&quot;&gt;State&lt;/span&gt;&lt;span style=&quot;color: #666666&quot;&gt;[&lt;/span&gt;&lt;span style=&quot;color: #B00040&quot;&gt;S&lt;/span&gt;,&lt;span style=&quot;color: #B00040&quot;&gt;B&lt;/span&gt;&lt;span style=&quot;color: #666666&quot;&gt;])&lt;/span&gt;&lt;span style=&quot;color: #008000; font-weight: bold&quot;&gt;:&lt;/span&gt; &lt;span style=&quot;color: #B00040&quot;&gt;State&lt;/span&gt;&lt;span style=&quot;color: #666666&quot;&gt;[&lt;/span&gt;&lt;span style=&quot;color: #B00040&quot;&gt;S&lt;/span&gt;,&lt;span style=&quot;color: #B00040&quot;&gt;B&lt;/span&gt;&lt;span style=&quot;color: #666666&quot;&gt;]&lt;/span&gt; &lt;span style=&quot;color: #008000; font-weight: bold&quot;&gt;=&lt;/span&gt;
+  &lt;span style=&quot;color: #0000FF; font-weight: bold&quot;&gt;State&lt;/span&gt;&lt;span style=&quot;color: #666666&quot;&gt;[&lt;/span&gt;&lt;span style=&quot;color: #B00040&quot;&gt;S&lt;/span&gt;,&lt;span style=&quot;color: #B00040&quot;&gt;B&lt;/span&gt;&lt;span style=&quot;color: #666666&quot;&gt;](&lt;/span&gt;s &lt;span style=&quot;color: #008000; font-weight: bold&quot;&gt;=&amp;gt;&lt;/span&gt; &lt;span style=&quot;color: #666666&quot;&gt;{&lt;/span&gt;
+    &lt;span style=&quot;color: #008000; font-weight: bold&quot;&gt;val&lt;/span&gt; &lt;span style=&quot;color: #666666&quot;&gt;(&lt;/span&gt;a&lt;span style=&quot;color: #666666&quot;&gt;,&lt;/span&gt; s1&lt;span style=&quot;color: #666666&quot;&gt;)&lt;/span&gt; &lt;span style=&quot;color: #008000; font-weight: bold&quot;&gt;=&lt;/span&gt; &lt;span style=&quot;color: #008000; font-weight: bold&quot;&gt;this&lt;/span&gt;&lt;span style=&quot;color: #666666&quot;&gt;.&lt;/span&gt;runS&lt;span style=&quot;color: #666666&quot;&gt;(&lt;/span&gt;s&lt;span style=&quot;color: #666666&quot;&gt;)&lt;/span&gt;
+    f&lt;span style=&quot;color: #666666&quot;&gt;(&lt;/span&gt;a&lt;span style=&quot;color: #666666&quot;&gt;)&lt;/span&gt; runS s1
+  &lt;span style=&quot;color: #666666&quot;&gt;})&lt;/span&gt;
+
+&lt;span style=&quot;color: #008000; font-weight: bold&quot;&gt;def&lt;/span&gt; zipIndex&lt;span style=&quot;color: #666666&quot;&gt;[&lt;/span&gt;&lt;span style=&quot;color: #B00040&quot;&gt;V&lt;/span&gt;&lt;span style=&quot;color: #666666&quot;&gt;](&lt;/span&gt;as&lt;span style=&quot;color: #008000; font-weight: bold&quot;&gt;:&lt;/span&gt; &lt;span style=&quot;color: #B00040&quot;&gt;List&lt;/span&gt;&lt;span style=&quot;color: #666666&quot;&gt;[&lt;/span&gt;&lt;span style=&quot;color: #B00040&quot;&gt;V&lt;/span&gt;&lt;span style=&quot;color: #666666&quot;&gt;])&lt;/span&gt;&lt;span style=&quot;color: #008000; font-weight: bold&quot;&gt;:&lt;/span&gt; &lt;span style=&quot;color: #B00040&quot;&gt;List&lt;/span&gt;&lt;span style=&quot;color: #666666&quot;&gt;[(&lt;/span&gt;&lt;span style=&quot;color: #B00040&quot;&gt;Int&lt;/span&gt;, &lt;span style=&quot;color: #B00040&quot;&gt;V&lt;/span&gt;&lt;span style=&quot;color: #666666&quot;&gt;)]&lt;/span&gt; &lt;span style=&quot;color: #008000; font-weight: bold&quot;&gt;=&lt;/span&gt;
+  as&lt;span style=&quot;color: #666666&quot;&gt;.&lt;/span&gt;foldLeft&lt;span style=&quot;color: #666666&quot;&gt;(&lt;/span&gt;pureState&lt;span style=&quot;color: #666666&quot;&gt;[&lt;/span&gt;&lt;span style=&quot;color: #B00040&quot;&gt;Int&lt;/span&gt;, &lt;span style=&quot;color: #B00040&quot;&gt;List&lt;/span&gt;&lt;span style=&quot;color: #666666&quot;&gt;[(&lt;/span&gt;&lt;span style=&quot;color: #B00040&quot;&gt;Int&lt;/span&gt;,&lt;span style=&quot;color: #B00040&quot;&gt;V&lt;/span&gt;&lt;span style=&quot;color: #666666&quot;&gt;)]](&lt;/span&gt;&lt;span style=&quot;color: #0000FF; font-weight: bold&quot;&gt;List&lt;/span&gt;&lt;span style=&quot;color: #666666&quot;&gt;()))&lt;/span&gt;
+  &lt;span style=&quot;color: #666666&quot;&gt;((&lt;/span&gt;acc&lt;span style=&quot;color: #666666&quot;&gt;,&lt;/span&gt; v&lt;span style=&quot;color: #666666&quot;&gt;)&lt;/span&gt; &lt;span style=&quot;color: #008000; font-weight: bold&quot;&gt;=&amp;gt;&lt;/span&gt; &lt;span style=&quot;color: #008000; font-weight: bold&quot;&gt;for&lt;/span&gt; &lt;span style=&quot;color: #666666&quot;&gt;{&lt;/span&gt;
+      xs &lt;span style=&quot;color: #008000; font-weight: bold&quot;&gt;&amp;lt;-&lt;/span&gt; acc
+      n  &lt;span style=&quot;color: #008000; font-weight: bold&quot;&gt;&amp;lt;-&lt;/span&gt; getState&lt;span style=&quot;color: #666666&quot;&gt;[&lt;/span&gt;&lt;span style=&quot;color: #B00040&quot;&gt;Int&lt;/span&gt;&lt;span style=&quot;color: #666666&quot;&gt;]&lt;/span&gt;
+      &lt;span style=&quot;color: #008000; font-weight: bold&quot;&gt;_&lt;/span&gt;  &lt;span style=&quot;color: #008000; font-weight: bold&quot;&gt;&amp;lt;-&lt;/span&gt; setState&lt;span style=&quot;color: #666666&quot;&gt;[&lt;/span&gt;&lt;span style=&quot;color: #B00040&quot;&gt;Int&lt;/span&gt;&lt;span style=&quot;color: #666666&quot;&gt;](&lt;/span&gt;n &lt;span style=&quot;color: #666666&quot;&gt;+&lt;/span&gt; &lt;span style=&quot;color: #666666&quot;&gt;1)&lt;/span&gt;
+  &lt;span style=&quot;color: #666666&quot;&gt;}&lt;/span&gt; &lt;span style=&quot;color: #008000; font-weight: bold&quot;&gt;yield&lt;/span&gt; &lt;span style=&quot;color: #666666&quot;&gt;(&lt;/span&gt;n&lt;span style=&quot;color: #666666&quot;&gt;,&lt;/span&gt;v&lt;span style=&quot;color: #666666&quot;&gt;)::&lt;/span&gt;xs&lt;span style=&quot;color: #666666&quot;&gt;)&lt;/span&gt;
+  &lt;span style=&quot;color: #666666&quot;&gt;.&lt;/span&gt;runS&lt;span style=&quot;color: #666666&quot;&gt;(0).&lt;/span&gt;_1&lt;span style=&quot;color: #666666&quot;&gt;.&lt;/span&gt;reverse
+&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;&lt;/code&gt;&lt;/pre&gt;
+&lt;/div&gt;
+&lt;/div&gt;
+&lt;div class=&quot;paragraph&quot;&gt;
+&lt;p&gt;Recall that, the Scala compiler will translation the for-comprehension into calls to &lt;code&gt;flatMap&lt;/code&gt;.
+Therefore, for every step of the fold in &lt;code&gt;zipIndex&lt;/code&gt;,
+it will call &lt;code&gt;flatMap&lt;/code&gt; on the variable &lt;code&gt;acc&lt;/code&gt; which is a &lt;code&gt;State&lt;/code&gt; action.
+Inside &lt;code&gt;flatMap&lt;/code&gt;, a new instance of &lt;code&gt;State&lt;/code&gt; will be created,
+and the anonymous function being passed into that new instance of &lt;code&gt;State&lt;/code&gt; will close over
+the &lt;em&gt;current&lt;/em&gt; instance of &lt;code&gt;State&lt;/code&gt; (&lt;code&gt;this&lt;/code&gt; line 3),
+so that the &lt;code&gt;runS&lt;/code&gt; method can be called.
+Essentially, we are creating a nested stack of &lt;code&gt;State&lt;/code&gt; actions as shown in the following screenshot.&lt;/p&gt;
+&lt;/div&gt;
+&lt;div class=&quot;imageblock&quot; style=&quot;text-align: center&quot;&gt;
+&lt;div class=&quot;content&quot;&gt;
+&lt;img src=&quot;/images/nested-state.png&quot; alt=&quot;nested state&quot;&gt;
+&lt;/div&gt;
+&lt;div class=&quot;title&quot;&gt;Figure 1. Result of five flatMap calls&lt;/div&gt;
+&lt;/div&gt;
+&lt;div class=&quot;paragraph&quot;&gt;
+&lt;p&gt;Going back to the &lt;code&gt;zipIndex&lt;/code&gt; example, as we fold over the whole list,
+we are creating a stack of &lt;code&gt;State&lt;/code&gt; actions linear to the number of elements in the list.
+So, when we evaluate the stack of &lt;code&gt;State&lt;/code&gt; actions by calling &lt;code&gt;runS&lt;/code&gt;,
+before &lt;code&gt;runS&lt;/code&gt; returns, it will call &lt;code&gt;runS&lt;/code&gt; of its inner &lt;code&gt;State&lt;/code&gt; action,
+and that call to inner &lt;code&gt;runS&lt;/code&gt; will call its inner State action&amp;#8217;s &lt;code&gt;runS&lt;/code&gt; and so on and so forth.
+As the call goes deeper and deeper, it keeps creating new stack frames.
+Eventually, there are more stack frames that the JVM can allow.&lt;/p&gt;
+&lt;/div&gt;
+&lt;div class=&quot;paragraph&quot;&gt;
+&lt;p&gt;On my MBP, the &lt;code&gt;zipIndex&lt;/code&gt; function will throw &lt;code&gt;StackOverflowError&lt;/code&gt;
+when the input is a list of around 4000 integers.
+A list of about 4000 elements is not that big of an input,
+such limitation makes functional programming in Scala not practical.
+But fear not, there are solutions mentioned in the paper to the stack safety problem,
+and I will talk about them in the subsequent posts.&lt;/p&gt;
+&lt;/div&gt;
+&lt;/div&gt;
+&lt;/div&gt;</description>
+        <pubDate>Thu, 08 Sep 2016 00:00:00 -0400</pubDate>
+        <link>http://www.marcoyuen.com/articles/2016/09/08/stackless-scala-1-the-problem.html</link>
+        <guid isPermaLink="true">http://www.marcoyuen.com/articles/2016/09/08/stackless-scala-1-the-problem.html</guid>
+        
+        <category>scala, functional programming</category>
+        
+        
+        <category>articles</category>
+        
+      </item>
     
       <item>
         <title>ArangoDB Performance Peculiarities</title>
