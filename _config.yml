@@ -20,6 +20,9 @@ highlighter: pygments
 gems:
     - jekyll-asciidoc
 
+asciidoc:
+  processor: asciidoctor
+
 asciidoctor:
   attributes:
     - idprefix=_
@@ -29,8 +32,8 @@ asciidoctor:
     - hardbreaks!
 
 exclude:
-    - Gemfile
-    - Gemfile.lock
-    - LICENSE.txt
-    - build.sh
-    - ideas.adoc
+  - Gemfile
+  - Gemfile.lock
+  - LICENSE.txt
+  - build.sh
+  - ideas.adoc
