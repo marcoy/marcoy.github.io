@@ -7,15 +7,15 @@
 :part1: link:{% post_url 2016-09-08-stackless-scala-1-the-problem %}
 
 == Quick Recap
-In the {part1}[last] post where I went through the `zipIndex` example from Rúnar's paper.
-The `zipIndex` is implemented in functional style Scala, but it has a huge problem --
-it is not stack safe.
+In the {part1}[last] post, I went through the `zipIndex` example from Rúnar's paper.
+The example, `zipIndex`, is implemented in functional style Scala,
+but it has a huge problem -- it is not stack safe.
 If the input list is too long, `zipIndex` will throw `StackOverflowError`.
 
 == Trampoline
 So how do we get around the stack problem?
-Is there a way to avoid creating the stack frames?
-At the point, the paper introduces trampoline.
+Is there a way to avoid creating stack frames?
+At this point, the paper introduces a technique called trampoline.
 The idea is to "`trade stack for heap`".
 
 [source,scala,lineno]
@@ -36,14 +36,14 @@ case class Done[+A](result: A) extends Trampoline[A]
 <1> Tell the Scala compiler to apply tail-call optimisation.
     As such, no new stack frame will be created when `runT` calls itself.
 
-Trampoline is an ADT that captures the steps of a computation.
+`Trampoline` is an ADT that captures the steps of a computation.
 In order words, given a computation that will return a value of type `A`
-(correspond to the covariant type variable for `Trampoline`),
-that computation can be represented as `More` or `Done`.
-A `Done` signifies that computation is done,
+(correspond to the covariant type variable, `A`, of the above `Trampoline` ADT),
+that computation can be represented as either `More` or `Done`.
+A `Done` signifies that computation is finished,
 and the value inside `Done` will be used as the return value.
-A `More` indicates that are a least a more step to perform for the computation.
-So perform the step inside `More`, then see what the next step will be.
+A `More` indicates that there is a least one more step to perform for the computation.
+So go ahead and perform the step inside `More`, then see what the next step will be.
 
 [sidebar]
 .Trampoline in Haskell
@@ -63,15 +63,15 @@ runT (More k) = runT (k ())
 ****
 
 === Trampoline Example: Odd and Even
-After introducing `Trampoline` ADT, the paper shows a simple example on how to use it.
-The `odd` and `even` functions do as their names say,
-and they call each other in a mutual recursion way --
+After introducing the `Trampoline` ADT, the paper shows a simple example on how to use it.
+The `odd` and `even` functions do as their names say.
+They call each other mutual recursively --
 meaning at the last step of `odd` it calls `even` and vice versa.
-Since we are using `Trampoline` to represent the `odd` and `even` computations,
-and both of those computations return Boolean.
-So the return types for `odd` and `even` will be `Trampoline[Boolean]`.
+Since we are using `Trampoline` to represent the `odd` and `even` computations
+and both of those computations return Boolean,
+the return types for `odd` and `even` will be `Trampoline[Boolean]`.
 
-Let's see some code!
+Let's see the code!
 
 [source,scala,lineno]
 ----
@@ -97,14 +97,19 @@ After calling `even(List(1,2,3))`, we get a value of type `Trampoline[Boolean]`.
 The value represents all the steps in the `even` computation.
 So in order to get the `Boolean` value out, we will need to run those steps.
 Hence, we need to call `runT` on the return value of `even`.
+This is why we are trading stack for heap.
+The return value of `even` contains all the computational steps.
 
 Normally, if `even` and `odd` mutually call each other and they return `Boolean` values,
-the call, `even(List.fill(4000)(1))`, will overflow the stack.
-That is because at the end of `even` it calls `odd` before it can return.
+the invocation of `even(List.fill(4000)(1))` will overflow the stack.
+That is because at the end of `even`, before it can return, it calls `odd`.
 Thus, creating a new stack frame for every single element in the input list.
-By utilizing `Trampoline`, instead of having `even` call `odd`,
-`even` just return a step (`More`) to `runT`.
-Since `runT` is tail recursive, it is not allocating new stack frames.
+By utilizing `Trampoline`, instead of having `even` calls `odd`,
+`even` just returns a step (`More`).
+The last step is to '`get`' the boolean value out of `Trampoline`.
+To do that, we call `runT`.
+Since `runT` is tail recursive,
+it is not allocating new stack frames.
 
 === Why Is It Called Trampoline?
 By using `Trampoline`, the control flow has changed.
