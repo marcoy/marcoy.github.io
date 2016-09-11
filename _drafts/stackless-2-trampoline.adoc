@@ -104,3 +104,23 @@ That is because at the end of `even` it calls `odd` before it can return.
 Thus, creating a new stack frame for every single element in the input list.
 By utilizing `Trampoline`, instead of having `even` call `odd`,
 `even` just return a step (`More`) to `runT`.
+Since `runT` is tail recursive, it is not allocating new stack frames.
+
+=== Why Is It Called Trampoline?
+By using `Trampoline`, the control flow has changed.
+Originally, `even` passing its control to `odd`,
+then `odd` passes its control to `even`, in the process,
+allocates a new stack frame for `even`.
+The back and forth goes on until it reaches the end of the input list.
+When `Trampoline` is used as the return value,
+`even` just returns a value of type `Trampoline`.
+It is up to the `runT` method of `Trampoline` to call the next step.
+So the control flow bounces from a function to `Trampoline`,
+then to another function, then back to `Trampoline` and so on.
+Every time when the control bounces back to `runT`,
+the stack frame gets deallocated.
+So there is no risk of overflowing the stack.
+
+== Applying Trampoline
+The logical next step is to apply the `Trampoline` technique to the `zipIndex` example
+introduced in the {part1}[first] post. And that is what we will see in the next post.
