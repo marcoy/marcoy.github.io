@@ -5,9 +5,216 @@
     <description>Life and Programming</description>
     <link>http://www.marcoyuen.com/</link>
     <atom:link href="http://www.marcoyuen.com/feed.xml" rel="self" type="application/rss+xml"/>
-    <pubDate>Sun, 11 Sep 2016 14:18:57 -0400</pubDate>
-    <lastBuildDate>Sun, 11 Sep 2016 14:18:57 -0400</lastBuildDate>
+    <pubDate>Sun, 11 Sep 2016 15:39:10 -0400</pubDate>
+    <lastBuildDate>Sun, 11 Sep 2016 15:39:10 -0400</lastBuildDate>
     <generator>Jekyll v3.2.1</generator>
+    
+      <item>
+        <title>Stackless Scala, Part 2: Trampoline</title>
+        <description>&lt;div class=&quot;sect1&quot;&gt;
+&lt;h2 id=&quot;_quick-recap&quot;&gt;Quick Recap&lt;/h2&gt;
+&lt;div class=&quot;sectionbody&quot;&gt;
+&lt;div class=&quot;paragraph&quot;&gt;
+&lt;p&gt;In the &lt;a href=&quot;/articles/2016/09/08/stackless-scala-1-the-problem.html&quot;&gt;last&lt;/a&gt; post, I went through the &lt;code&gt;zipIndex&lt;/code&gt; example from Rúnar&amp;#8217;s paper.
+The example, &lt;code&gt;zipIndex&lt;/code&gt;, is implemented in functional style Scala,
+but it has a huge problem&amp;#8201;&amp;#8212;&amp;#8201;it is not stack safe.
+If the input list is too long, &lt;code&gt;zipIndex&lt;/code&gt; will throw &lt;code&gt;StackOverflowError&lt;/code&gt;.&lt;/p&gt;
+&lt;/div&gt;
+&lt;/div&gt;
+&lt;/div&gt;
+&lt;div class=&quot;sect1&quot;&gt;
+&lt;h2 id=&quot;_trampoline&quot;&gt;Trampoline&lt;/h2&gt;
+&lt;div class=&quot;sectionbody&quot;&gt;
+&lt;div class=&quot;paragraph&quot;&gt;
+&lt;p&gt;So how do we get around the stack problem?
+Is there a way to avoid creating stack frames?
+At this point, the paper introduces a technique called trampoline.
+The idea is to &amp;#8220;trade stack for heap&amp;#8221;.&lt;/p&gt;
+&lt;/div&gt;
+&lt;div class=&quot;listingblock&quot;&gt;
+&lt;div class=&quot;title&quot;&gt;Trampoline&lt;/div&gt;
+&lt;div class=&quot;content&quot;&gt;
+&lt;pre class=&quot;pygments highlight&quot;&gt;&lt;code data-lang=&quot;scala&quot;&gt;&lt;table class=&quot;pyhltable&quot;&gt;&lt;tr&gt;&lt;td&gt;&lt;div class=&quot;linenodiv&quot; style=&quot;background-color: #f0f0f0; padding-right: 10px&quot;&gt; 1
+ 2
+ 3
+ 4
+ 5
+ 6
+ 7
+ 8
+ 9
+10
+11&lt;/div&gt;&lt;/td&gt;&lt;td class=&quot;code&quot;&gt;&lt;span style=&quot;color: #008000; font-weight: bold&quot;&gt;sealed&lt;/span&gt; &lt;span style=&quot;color: #008000; font-weight: bold&quot;&gt;trait&lt;/span&gt; &lt;span style=&quot;color: #0000FF; font-weight: bold&quot;&gt;Trampoline&lt;/span&gt;&lt;span style=&quot;color: #666666&quot;&gt;[&lt;/span&gt;&lt;span style=&quot;color: #B00040&quot;&gt;+A&lt;/span&gt;&lt;span style=&quot;color: #666666&quot;&gt;]&lt;/span&gt; &lt;span style=&quot;color: #666666&quot;&gt;{&lt;/span&gt;
+  &lt;span style=&quot;color: #AA22FF&quot;&gt;@tailrec&lt;/span&gt; &lt;i class=&quot;conum&quot; data-value=&quot;1&quot;&gt;&lt;/i&gt;&lt;b&gt;(1)&lt;/b&gt;
+  &lt;span style=&quot;color: #008000; font-weight: bold&quot;&gt;final&lt;/span&gt; &lt;span style=&quot;color: #008000; font-weight: bold&quot;&gt;def&lt;/span&gt; runT&lt;span style=&quot;color: #008000; font-weight: bold&quot;&gt;:&lt;/span&gt; &lt;span style=&quot;color: #B00040&quot;&gt;A&lt;/span&gt; &lt;span style=&quot;color: #666666&quot;&gt;=&lt;/span&gt;
+    &lt;span style=&quot;color: #008000; font-weight: bold&quot;&gt;this&lt;/span&gt; &lt;span style=&quot;color: #008000; font-weight: bold&quot;&gt;match&lt;/span&gt; &lt;span style=&quot;color: #666666&quot;&gt;{&lt;/span&gt;
+      &lt;span style=&quot;color: #008000; font-weight: bold&quot;&gt;case&lt;/span&gt; &lt;span style=&quot;color: #0000FF; font-weight: bold&quot;&gt;More&lt;/span&gt;&lt;span style=&quot;color: #666666&quot;&gt;(&lt;/span&gt;k&lt;span style=&quot;color: #666666&quot;&gt;)&lt;/span&gt; &lt;span style=&quot;color: #008000; font-weight: bold&quot;&gt;=&amp;gt;&lt;/span&gt; k&lt;span style=&quot;color: #666666&quot;&gt;().&lt;/span&gt;runT
+      &lt;span style=&quot;color: #008000; font-weight: bold&quot;&gt;case&lt;/span&gt; &lt;span style=&quot;color: #0000FF; font-weight: bold&quot;&gt;Done&lt;/span&gt;&lt;span style=&quot;color: #666666&quot;&gt;(&lt;/span&gt;v&lt;span style=&quot;color: #666666&quot;&gt;)&lt;/span&gt; &lt;span style=&quot;color: #008000; font-weight: bold&quot;&gt;=&amp;gt;&lt;/span&gt; v
+    &lt;span style=&quot;color: #666666&quot;&gt;}&lt;/span&gt;
+&lt;span style=&quot;color: #666666&quot;&gt;}&lt;/span&gt;
+&lt;span style=&quot;color: #008000; font-weight: bold&quot;&gt;case&lt;/span&gt; &lt;span style=&quot;color: #008000; font-weight: bold&quot;&gt;class&lt;/span&gt; &lt;span style=&quot;color: #0000FF; font-weight: bold&quot;&gt;More&lt;/span&gt;&lt;span style=&quot;color: #666666&quot;&gt;[&lt;/span&gt;&lt;span style=&quot;color: #B00040&quot;&gt;+A&lt;/span&gt;&lt;span style=&quot;color: #666666&quot;&gt;](&lt;/span&gt;k&lt;span style=&quot;color: #008000; font-weight: bold&quot;&gt;:&lt;/span&gt; &lt;span style=&quot;color: #666666&quot;&gt;()&lt;/span&gt; &lt;span style=&quot;color: #666666&quot;&gt;=&amp;gt;&lt;/span&gt; &lt;span style=&quot;color: #0000FF; font-weight: bold&quot;&gt;Trampoline&lt;/span&gt;&lt;span style=&quot;color: #666666&quot;&gt;[&lt;/span&gt;&lt;span style=&quot;color: #B00040&quot;&gt;A&lt;/span&gt;&lt;span style=&quot;color: #666666&quot;&gt;])&lt;/span&gt;
+    &lt;span style=&quot;color: #008000; font-weight: bold&quot;&gt;extends&lt;/span&gt; &lt;span style=&quot;color: #0000FF; font-weight: bold&quot;&gt;Trampoline&lt;/span&gt;&lt;span style=&quot;color: #666666&quot;&gt;[&lt;/span&gt;&lt;span style=&quot;color: #B00040&quot;&gt;A&lt;/span&gt;&lt;span style=&quot;color: #666666&quot;&gt;]&lt;/span&gt;
+&lt;span style=&quot;color: #008000; font-weight: bold&quot;&gt;case&lt;/span&gt; &lt;span style=&quot;color: #008000; font-weight: bold&quot;&gt;class&lt;/span&gt; &lt;span style=&quot;color: #0000FF; font-weight: bold&quot;&gt;Done&lt;/span&gt;&lt;span style=&quot;color: #666666&quot;&gt;[&lt;/span&gt;&lt;span style=&quot;color: #B00040&quot;&gt;+A&lt;/span&gt;&lt;span style=&quot;color: #666666&quot;&gt;](&lt;/span&gt;result&lt;span style=&quot;color: #008000; font-weight: bold&quot;&gt;:&lt;/span&gt; &lt;span style=&quot;color: #B00040&quot;&gt;A&lt;/span&gt;&lt;span style=&quot;color: #666666&quot;&gt;)&lt;/span&gt; &lt;span style=&quot;color: #008000; font-weight: bold&quot;&gt;extends&lt;/span&gt; &lt;span style=&quot;color: #0000FF; font-weight: bold&quot;&gt;Trampoline&lt;/span&gt;&lt;span style=&quot;color: #666666&quot;&gt;[&lt;/span&gt;&lt;span style=&quot;color: #B00040&quot;&gt;A&lt;/span&gt;&lt;span style=&quot;color: #666666&quot;&gt;]&lt;/span&gt;
+&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;&lt;/code&gt;&lt;/pre&gt;
+&lt;/div&gt;
+&lt;/div&gt;
+&lt;div class=&quot;colist arabic&quot;&gt;
+&lt;table&gt;
+&lt;tr&gt;
+&lt;td&gt;&lt;i class=&quot;conum&quot; data-value=&quot;1&quot;&gt;&lt;/i&gt;&lt;b&gt;1&lt;/b&gt;&lt;/td&gt;
+&lt;td&gt;Tell the Scala compiler to apply tail-call optimisation.
+As such, no new stack frame will be created when &lt;code&gt;runT&lt;/code&gt; calls itself.&lt;/td&gt;
+&lt;/tr&gt;
+&lt;/table&gt;
+&lt;/div&gt;
+&lt;div class=&quot;paragraph&quot;&gt;
+&lt;p&gt;&lt;code&gt;Trampoline&lt;/code&gt; is an ADT that captures the steps of a computation.
+In order words, given a computation that will return a value of type &lt;code&gt;A&lt;/code&gt;
+(correspond to the covariant type variable, &lt;code&gt;A&lt;/code&gt;, of the above &lt;code&gt;Trampoline&lt;/code&gt; ADT),
+that computation can be represented as either &lt;code&gt;More&lt;/code&gt; or &lt;code&gt;Done&lt;/code&gt;.
+A &lt;code&gt;Done&lt;/code&gt; signifies that computation is finished,
+and the value inside &lt;code&gt;Done&lt;/code&gt; will be used as the return value.
+A &lt;code&gt;More&lt;/code&gt; indicates that there is a least one more step to perform for the computation.
+So go ahead and perform the step inside &lt;code&gt;More&lt;/code&gt;, then see what the next step will be.&lt;/p&gt;
+&lt;/div&gt;
+&lt;div class=&quot;sidebarblock&quot;&gt;
+&lt;div class=&quot;content&quot;&gt;
+&lt;div class=&quot;title&quot;&gt;Trampoline in Haskell&lt;/div&gt;
+&lt;div class=&quot;paragraph&quot;&gt;
+&lt;p&gt;As an aside, I much prefer the Haskell syntax; it is much more concise.
+Below is the implementation of &lt;code&gt;runT&lt;/code&gt; and the &lt;code&gt;Trampoline&lt;/code&gt; ADT in Haskell.&lt;/p&gt;
+&lt;/div&gt;
+&lt;div class=&quot;listingblock&quot;&gt;
+&lt;div class=&quot;content&quot;&gt;
+&lt;pre class=&quot;pygments highlight&quot;&gt;&lt;code data-lang=&quot;haskell&quot;&gt;&lt;span style=&quot;color: #008000; font-weight: bold&quot;&gt;data&lt;/span&gt; &lt;span style=&quot;color: #B00040&quot;&gt;Trampoline&lt;/span&gt; a &lt;span style=&quot;color: #AA22FF; font-weight: bold&quot;&gt;=&lt;/span&gt; &lt;span style=&quot;color: #B00040&quot;&gt;More&lt;/span&gt; (&lt;span style=&quot;color: #008000&quot;&gt;()&lt;/span&gt; &lt;span style=&quot;color: #AA22FF; font-weight: bold&quot;&gt;-&amp;gt;&lt;/span&gt; &lt;span style=&quot;color: #B00040&quot;&gt;Trampoline&lt;/span&gt; a)
+                  &lt;span style=&quot;color: #666666&quot;&gt;|&lt;/span&gt; &lt;span style=&quot;color: #B00040&quot;&gt;Done&lt;/span&gt; a
+
+&lt;span style=&quot;color: #0000FF&quot;&gt;runT&lt;/span&gt; &lt;span style=&quot;color: #AA22FF; font-weight: bold&quot;&gt;::&lt;/span&gt; &lt;span style=&quot;color: #B00040&quot;&gt;Trampoline&lt;/span&gt; a &lt;span style=&quot;color: #AA22FF; font-weight: bold&quot;&gt;-&amp;gt;&lt;/span&gt; a
+&lt;span style=&quot;color: #0000FF&quot;&gt;runT&lt;/span&gt; (&lt;span style=&quot;color: #B00040&quot;&gt;Done&lt;/span&gt; a) &lt;span style=&quot;color: #AA22FF; font-weight: bold&quot;&gt;=&lt;/span&gt; a
+&lt;span style=&quot;color: #0000FF&quot;&gt;runT&lt;/span&gt; (&lt;span style=&quot;color: #B00040&quot;&gt;More&lt;/span&gt; k) &lt;span style=&quot;color: #AA22FF; font-weight: bold&quot;&gt;=&lt;/span&gt; runT (k &lt;span style=&quot;color: #008000&quot;&gt;()&lt;/span&gt;)&lt;/code&gt;&lt;/pre&gt;
+&lt;/div&gt;
+&lt;/div&gt;
+&lt;/div&gt;
+&lt;/div&gt;
+&lt;div class=&quot;sect2&quot;&gt;
+&lt;h3 id=&quot;_trampoline-example-odd-and-even&quot;&gt;Trampoline Example: Odd and Even&lt;/h3&gt;
+&lt;div class=&quot;paragraph&quot;&gt;
+&lt;p&gt;After introducing the &lt;code&gt;Trampoline&lt;/code&gt; ADT, the paper shows a simple example on how to use it.
+The &lt;code&gt;odd&lt;/code&gt; and &lt;code&gt;even&lt;/code&gt; functions do as their names say.
+They call each other mutual recursively&amp;#8201;&amp;#8212;&amp;#8201;meaning at the last step of &lt;code&gt;odd&lt;/code&gt; it calls &lt;code&gt;even&lt;/code&gt; and vice versa.
+Since we are using &lt;code&gt;Trampoline&lt;/code&gt; to represent the &lt;code&gt;odd&lt;/code&gt; and &lt;code&gt;even&lt;/code&gt; computations
+and both of those computations return Boolean,
+the return types for &lt;code&gt;odd&lt;/code&gt; and &lt;code&gt;even&lt;/code&gt; will be &lt;code&gt;Trampoline[Boolean]&lt;/code&gt;.&lt;/p&gt;
+&lt;/div&gt;
+&lt;div class=&quot;paragraph&quot;&gt;
+&lt;p&gt;Let&amp;#8217;s see the code!&lt;/p&gt;
+&lt;/div&gt;
+&lt;div class=&quot;listingblock&quot;&gt;
+&lt;div class=&quot;content&quot;&gt;
+&lt;pre class=&quot;pygments highlight&quot;&gt;&lt;code data-lang=&quot;scala&quot;&gt;&lt;table class=&quot;pyhltable&quot;&gt;&lt;tr&gt;&lt;td&gt;&lt;div class=&quot;linenodiv&quot; style=&quot;background-color: #f0f0f0; padding-right: 10px&quot;&gt; 1
+ 2
+ 3
+ 4
+ 5
+ 6
+ 7
+ 8
+ 9
+10
+11
+12
+13&lt;/div&gt;&lt;/td&gt;&lt;td class=&quot;code&quot;&gt;&lt;span style=&quot;color: #008000; font-weight: bold&quot;&gt;def&lt;/span&gt; even&lt;span style=&quot;color: #666666&quot;&gt;[&lt;/span&gt;&lt;span style=&quot;color: #B00040&quot;&gt;A&lt;/span&gt;&lt;span style=&quot;color: #666666&quot;&gt;](&lt;/span&gt;ns&lt;span style=&quot;color: #008000; font-weight: bold&quot;&gt;:&lt;/span&gt; &lt;span style=&quot;color: #B00040&quot;&gt;List&lt;/span&gt;&lt;span style=&quot;color: #666666&quot;&gt;[&lt;/span&gt;&lt;span style=&quot;color: #B00040&quot;&gt;A&lt;/span&gt;&lt;span style=&quot;color: #666666&quot;&gt;])&lt;/span&gt;&lt;span style=&quot;color: #008000; font-weight: bold&quot;&gt;:&lt;/span&gt; &lt;span style=&quot;color: #B00040&quot;&gt;Trampoline&lt;/span&gt;&lt;span style=&quot;color: #666666&quot;&gt;[&lt;/span&gt;&lt;span style=&quot;color: #B00040&quot;&gt;Boolean&lt;/span&gt;&lt;span style=&quot;color: #666666&quot;&gt;]&lt;/span&gt; &lt;span style=&quot;color: #008000; font-weight: bold&quot;&gt;=&lt;/span&gt; &lt;i class=&quot;conum&quot; data-value=&quot;1&quot;&gt;&lt;/i&gt;&lt;b&gt;(1)&lt;/b&gt;
+  ns &lt;span style=&quot;color: #008000; font-weight: bold&quot;&gt;match&lt;/span&gt; &lt;span style=&quot;color: #666666&quot;&gt;{&lt;/span&gt;
+    &lt;span style=&quot;color: #008000; font-weight: bold&quot;&gt;case&lt;/span&gt; &lt;span style=&quot;color: #0000FF; font-weight: bold&quot;&gt;Nil&lt;/span&gt; &lt;span style=&quot;color: #008000; font-weight: bold&quot;&gt;=&amp;gt;&lt;/span&gt; &lt;span style=&quot;color: #0000FF; font-weight: bold&quot;&gt;Done&lt;/span&gt;&lt;span style=&quot;color: #666666&quot;&gt;(&lt;/span&gt;&lt;span style=&quot;color: #008000; font-weight: bold&quot;&gt;true&lt;/span&gt;&lt;span style=&quot;color: #666666&quot;&gt;)&lt;/span&gt;
+    &lt;span style=&quot;color: #008000; font-weight: bold&quot;&gt;case&lt;/span&gt; x &lt;span style=&quot;color: #666666&quot;&gt;::&lt;/span&gt; xs &lt;span style=&quot;color: #008000; font-weight: bold&quot;&gt;=&amp;gt;&lt;/span&gt; &lt;span style=&quot;color: #0000FF; font-weight: bold&quot;&gt;More&lt;/span&gt;&lt;span style=&quot;color: #666666&quot;&gt;(()&lt;/span&gt; &lt;span style=&quot;color: #008000; font-weight: bold&quot;&gt;=&amp;gt;&lt;/span&gt; odd&lt;span style=&quot;color: #666666&quot;&gt;(&lt;/span&gt;xs&lt;span style=&quot;color: #666666&quot;&gt;))&lt;/span&gt; &lt;i class=&quot;conum&quot; data-value=&quot;2&quot;&gt;&lt;/i&gt;&lt;b&gt;(2)&lt;/b&gt;
+  &lt;span style=&quot;color: #666666&quot;&gt;}&lt;/span&gt;
+
+&lt;span style=&quot;color: #008000; font-weight: bold&quot;&gt;def&lt;/span&gt; odd&lt;span style=&quot;color: #666666&quot;&gt;[&lt;/span&gt;&lt;span style=&quot;color: #B00040&quot;&gt;A&lt;/span&gt;&lt;span style=&quot;color: #666666&quot;&gt;](&lt;/span&gt;ns&lt;span style=&quot;color: #008000; font-weight: bold&quot;&gt;:&lt;/span&gt; &lt;span style=&quot;color: #B00040&quot;&gt;List&lt;/span&gt;&lt;span style=&quot;color: #666666&quot;&gt;[&lt;/span&gt;&lt;span style=&quot;color: #B00040&quot;&gt;A&lt;/span&gt;&lt;span style=&quot;color: #666666&quot;&gt;])&lt;/span&gt;&lt;span style=&quot;color: #008000; font-weight: bold&quot;&gt;:&lt;/span&gt; &lt;span style=&quot;color: #B00040&quot;&gt;Trampoline&lt;/span&gt;&lt;span style=&quot;color: #666666&quot;&gt;[&lt;/span&gt;&lt;span style=&quot;color: #B00040&quot;&gt;Boolean&lt;/span&gt;&lt;span style=&quot;color: #666666&quot;&gt;]&lt;/span&gt; &lt;span style=&quot;color: #008000; font-weight: bold&quot;&gt;=&lt;/span&gt; &lt;i class=&quot;conum&quot; data-value=&quot;1&quot;&gt;&lt;/i&gt;&lt;b&gt;(1)&lt;/b&gt;
+  ns &lt;span style=&quot;color: #008000; font-weight: bold&quot;&gt;match&lt;/span&gt; &lt;span style=&quot;color: #666666&quot;&gt;{&lt;/span&gt;
+    &lt;span style=&quot;color: #008000; font-weight: bold&quot;&gt;case&lt;/span&gt; &lt;span style=&quot;color: #0000FF; font-weight: bold&quot;&gt;Nil&lt;/span&gt; &lt;span style=&quot;color: #008000; font-weight: bold&quot;&gt;=&amp;gt;&lt;/span&gt; &lt;span style=&quot;color: #0000FF; font-weight: bold&quot;&gt;Done&lt;/span&gt;&lt;span style=&quot;color: #666666&quot;&gt;(&lt;/span&gt;&lt;span style=&quot;color: #008000; font-weight: bold&quot;&gt;false&lt;/span&gt;&lt;span style=&quot;color: #666666&quot;&gt;)&lt;/span&gt;
+    &lt;span style=&quot;color: #008000; font-weight: bold&quot;&gt;case&lt;/span&gt; x &lt;span style=&quot;color: #666666&quot;&gt;::&lt;/span&gt; xs &lt;span style=&quot;color: #008000; font-weight: bold&quot;&gt;=&amp;gt;&lt;/span&gt; &lt;span style=&quot;color: #0000FF; font-weight: bold&quot;&gt;More&lt;/span&gt;&lt;span style=&quot;color: #666666&quot;&gt;(()&lt;/span&gt; &lt;span style=&quot;color: #008000; font-weight: bold&quot;&gt;=&amp;gt;&lt;/span&gt; even&lt;span style=&quot;color: #666666&quot;&gt;(&lt;/span&gt;xs&lt;span style=&quot;color: #666666&quot;&gt;))&lt;/span&gt; &lt;i class=&quot;conum&quot; data-value=&quot;2&quot;&gt;&lt;/i&gt;&lt;b&gt;(2)&lt;/b&gt;
+  &lt;span style=&quot;color: #666666&quot;&gt;}&lt;/span&gt;
+
+even&lt;span style=&quot;color: #666666&quot;&gt;(&lt;/span&gt;&lt;span style=&quot;color: #0000FF; font-weight: bold&quot;&gt;List&lt;/span&gt;&lt;span style=&quot;color: #666666&quot;&gt;(1,2,3)).&lt;/span&gt;runT &lt;span style=&quot;color: #408080; font-style: italic&quot;&gt;// -&amp;gt; False &lt;/span&gt; &lt;i class=&quot;conum&quot; data-value=&quot;3&quot;&gt;&lt;/i&gt;&lt;b&gt;(3)&lt;/b&gt;
+&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;&lt;/code&gt;&lt;/pre&gt;
+&lt;/div&gt;
+&lt;/div&gt;
+&lt;div class=&quot;colist arabic&quot;&gt;
+&lt;table&gt;
+&lt;tr&gt;
+&lt;td&gt;&lt;i class=&quot;conum&quot; data-value=&quot;1&quot;&gt;&lt;/i&gt;&lt;b&gt;1&lt;/b&gt;&lt;/td&gt;
+&lt;td&gt;Return &lt;code&gt;Trampoline[Boolean]&lt;/code&gt; rather than just &lt;code&gt;Boolean&lt;/code&gt;.&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;&lt;i class=&quot;conum&quot; data-value=&quot;2&quot;&gt;&lt;/i&gt;&lt;b&gt;2&lt;/b&gt;&lt;/td&gt;
+&lt;td&gt;Mutual recursion.&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;&lt;i class=&quot;conum&quot; data-value=&quot;3&quot;&gt;&lt;/i&gt;&lt;b&gt;3&lt;/b&gt;&lt;/td&gt;
+&lt;td&gt;Run the computation.&lt;/td&gt;
+&lt;/tr&gt;
+&lt;/table&gt;
+&lt;/div&gt;
+&lt;div class=&quot;paragraph&quot;&gt;
+&lt;p&gt;After calling &lt;code&gt;even(List(1,2,3))&lt;/code&gt;, we get a value of type &lt;code&gt;Trampoline[Boolean]&lt;/code&gt;.
+The value represents all the steps in the &lt;code&gt;even&lt;/code&gt; computation.
+So in order to get the &lt;code&gt;Boolean&lt;/code&gt; value out, we will need to run those steps.
+Hence, we need to call &lt;code&gt;runT&lt;/code&gt; on the return value of &lt;code&gt;even&lt;/code&gt;.
+This is why we are trading stack for heap.
+The return value of &lt;code&gt;even&lt;/code&gt; contains all the computational steps.&lt;/p&gt;
+&lt;/div&gt;
+&lt;div class=&quot;paragraph&quot;&gt;
+&lt;p&gt;Normally, if &lt;code&gt;even&lt;/code&gt; and &lt;code&gt;odd&lt;/code&gt; mutually call each other and they return &lt;code&gt;Boolean&lt;/code&gt; values,
+the invocation of &lt;code&gt;even(List.fill(4000)(1))&lt;/code&gt; will overflow the stack.
+That is because at the end of &lt;code&gt;even&lt;/code&gt;, before it can return, it calls &lt;code&gt;odd&lt;/code&gt;.
+Thus, creating a new stack frame for every single element in the input list.
+By utilizing &lt;code&gt;Trampoline&lt;/code&gt;, instead of having &lt;code&gt;even&lt;/code&gt; calls &lt;code&gt;odd&lt;/code&gt;,
+&lt;code&gt;even&lt;/code&gt; just returns a step (&lt;code&gt;More&lt;/code&gt;).
+The last step is to &amp;#8216;get&amp;#8217; the boolean value out of &lt;code&gt;Trampoline&lt;/code&gt;.
+To do that, we call &lt;code&gt;runT&lt;/code&gt;.
+Since &lt;code&gt;runT&lt;/code&gt; is tail recursive,
+it is not allocating new stack frames.&lt;/p&gt;
+&lt;/div&gt;
+&lt;/div&gt;
+&lt;div class=&quot;sect2&quot;&gt;
+&lt;h3 id=&quot;_why-is-it-called-trampoline&quot;&gt;Why Is It Called Trampoline?&lt;/h3&gt;
+&lt;div class=&quot;paragraph&quot;&gt;
+&lt;p&gt;By using &lt;code&gt;Trampoline&lt;/code&gt;, the control flow has changed.
+Originally, &lt;code&gt;even&lt;/code&gt; passing its control to &lt;code&gt;odd&lt;/code&gt;,
+then &lt;code&gt;odd&lt;/code&gt; passes its control to &lt;code&gt;even&lt;/code&gt;, in the process,
+allocates a new stack frame for &lt;code&gt;even&lt;/code&gt;.
+The back and forth goes on until it reaches the end of the input list.
+When &lt;code&gt;Trampoline&lt;/code&gt; is used as the return value,
+&lt;code&gt;even&lt;/code&gt; just returns a value of type &lt;code&gt;Trampoline&lt;/code&gt;.
+It is up to the &lt;code&gt;runT&lt;/code&gt; method of &lt;code&gt;Trampoline&lt;/code&gt; to call the next step.
+So the control flow bounces from a function to &lt;code&gt;Trampoline&lt;/code&gt;,
+then to another function, then back to &lt;code&gt;Trampoline&lt;/code&gt; and so on.
+Every time when the control bounces back to &lt;code&gt;runT&lt;/code&gt;,
+the stack frame gets deallocated.
+So there is no risk of overflowing the stack.&lt;/p&gt;
+&lt;/div&gt;
+&lt;/div&gt;
+&lt;/div&gt;
+&lt;/div&gt;
+&lt;div class=&quot;sect1&quot;&gt;
+&lt;h2 id=&quot;_applying-trampoline&quot;&gt;Applying Trampoline&lt;/h2&gt;
+&lt;div class=&quot;sectionbody&quot;&gt;
+&lt;div class=&quot;paragraph&quot;&gt;
+&lt;p&gt;The logical next step is to apply the &lt;code&gt;Trampoline&lt;/code&gt; technique to the &lt;code&gt;zipIndex&lt;/code&gt; example
+introduced in the &lt;a href=&quot;/articles/2016/09/08/stackless-scala-1-the-problem.html&quot;&gt;first&lt;/a&gt; post. And that is what we will see in the next post.&lt;/p&gt;
+&lt;/div&gt;
+&lt;/div&gt;
+&lt;/div&gt;</description>
+        <pubDate>Sun, 11 Sep 2016 00:00:00 -0400</pubDate>
+        <link>http://www.marcoyuen.com/articles/2016/09/11/stackless-scala-2-trampoline.html</link>
+        <guid isPermaLink="true">http://www.marcoyuen.com/articles/2016/09/11/stackless-scala-2-trampoline.html</guid>
+        
+        <category>scala, functional programming</category>
+        
+        
+        <category>articles</category>
+        
+      </item>
     
       <item>
         <title>Stackless Scala, Part 1: The Problem</title>

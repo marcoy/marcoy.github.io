@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html>
+
+  <head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <title>Stackless Scala, Part 2: Trampoline</title>
+  <meta name="description" content="">
+  <link href='https://fonts.googleapis.com/css?family=PT+Sans:400,700,400italic,700italic' rel='stylesheet' type='text/css'>
+  <link href='https://fonts.googleapis.com/css?family=Source+Sans+Pro:400,700,200,300' rel='stylesheet' type='text/css'>
+  <link href='https://fonts.googleapis.com/css?family=Josefin+Sans:400,600,700,300' rel='stylesheet' type='text/css'>
+
+  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.6.3/css/font-awesome.min.css">
+  <link rel="stylesheet" href="/css/style.css">
+  <link rel="stylesheet" href="/css/asciidoctor.css">
+  <link rel="canonical" href="http://www.marcoyuen.com/articles/2016/09/11/stackless-scala-2-trampoline.html">
+  <link rel="alternate" type="application/rss+xml" title="Marco Yuen" href="http://www.marcoyuen.com/feed.xml">
+</head>
+
+
+  <body>
+
+    
+<div class="wrapper">
+  <center><div class="site-title">Marco Yuen</div></center>
+</div>
+<div class="wrapper site-description">
+  <center>Life and Programming</center>
+</div>
+<div class="wrapper">
+  <div class="trigger site-navigation">
+    <center>
+      <a class="page-link" href="/index.html">HOME</a>
+      
+        
+          <span class="exclamationMark">/</span><a class="page-link" href="/about/">About</a>
+        
+      
+        
+      
+        
+      
+        
+          <span class="exclamationMark">/</span><a class="page-link" href="/resume/">Resume</a>
+        
+      
+        
+      
+    </center>
+  </div>
+</div>
+
+
+    <div class="page-content">
+      <div class="wrapper">
+        <article class="post" itemscope itemtype="http://schema.org/BlogPosting">
+  <header class="post-header">
+    <h1 class="post-title" itemprop="name headline">Stackless Scala, Part 2: Trampoline</h1>
+    <center>
+      <p class="post-meta">
+        <time datetime="2016-09-11T00:00:00-04:00" itemprop="datePublished">Sep 11, 2016</time>
+      </p>
+      
+    </center>
+  </header>
+
+  <div class="post-content" itemprop="articleBody">
+    <div class="sect1">
+<h2 id="_quick-recap">Quick Recap</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>In the <a href="/articles/2016/09/08/stackless-scala-1-the-problem.html">last</a> post, I went through the <code>zipIndex</code> example from Rúnar&#8217;s paper.
+The example, <code>zipIndex</code>, is implemented in functional style Scala,
+but it has a huge problem&#8201;&#8212;&#8201;it is not stack safe.
+If the input list is too long, <code>zipIndex</code> will throw <code>StackOverflowError</code>.</p>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_trampoline">Trampoline</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>So how do we get around the stack problem?
+Is there a way to avoid creating stack frames?
+At this point, the paper introduces a technique called trampoline.
+The idea is to &#8220;trade stack for heap&#8221;.</p>
+</div>
+<div class="listingblock">
+<div class="title">Trampoline</div>
+<div class="content">
+<pre class="pygments highlight"><code data-lang="scala"><table class="pyhltable"><tr><td><div class="linenodiv" style="background-color: #f0f0f0; padding-right: 10px"> 1
+ 2
+ 3
+ 4
+ 5
+ 6
+ 7
+ 8
+ 9
+10
+11</div></td><td class="code"><span style="color: #008000; font-weight: bold">sealed</span> <span style="color: #008000; font-weight: bold">trait</span> <span style="color: #0000FF; font-weight: bold">Trampoline</span><span style="color: #666666">[</span><span style="color: #B00040">+A</span><span style="color: #666666">]</span> <span style="color: #666666">{</span>
+  <span style="color: #AA22FF">@tailrec</span> <i class="conum" data-value="1"></i><b>(1)</b>
+  <span style="color: #008000; font-weight: bold">final</span> <span style="color: #008000; font-weight: bold">def</span> runT<span style="color: #008000; font-weight: bold">:</span> <span style="color: #B00040">A</span> <span style="color: #666666">=</span>
+    <span style="color: #008000; font-weight: bold">this</span> <span style="color: #008000; font-weight: bold">match</span> <span style="color: #666666">{</span>
+      <span style="color: #008000; font-weight: bold">case</span> <span style="color: #0000FF; font-weight: bold">More</span><span style="color: #666666">(</span>k<span style="color: #666666">)</span> <span style="color: #008000; font-weight: bold">=&gt;</span> k<span style="color: #666666">().</span>runT
+      <span style="color: #008000; font-weight: bold">case</span> <span style="color: #0000FF; font-weight: bold">Done</span><span style="color: #666666">(</span>v<span style="color: #666666">)</span> <span style="color: #008000; font-weight: bold">=&gt;</span> v
+    <span style="color: #666666">}</span>
+<span style="color: #666666">}</span>
+<span style="color: #008000; font-weight: bold">case</span> <span style="color: #008000; font-weight: bold">class</span> <span style="color: #0000FF; font-weight: bold">More</span><span style="color: #666666">[</span><span style="color: #B00040">+A</span><span style="color: #666666">](</span>k<span style="color: #008000; font-weight: bold">:</span> <span style="color: #666666">()</span> <span style="color: #666666">=&gt;</span> <span style="color: #0000FF; font-weight: bold">Trampoline</span><span style="color: #666666">[</span><span style="color: #B00040">A</span><span style="color: #666666">])</span>
+    <span style="color: #008000; font-weight: bold">extends</span> <span style="color: #0000FF; font-weight: bold">Trampoline</span><span style="color: #666666">[</span><span style="color: #B00040">A</span><span style="color: #666666">]</span>
+<span style="color: #008000; font-weight: bold">case</span> <span style="color: #008000; font-weight: bold">class</span> <span style="color: #0000FF; font-weight: bold">Done</span><span style="color: #666666">[</span><span style="color: #B00040">+A</span><span style="color: #666666">](</span>result<span style="color: #008000; font-weight: bold">:</span> <span style="color: #B00040">A</span><span style="color: #666666">)</span> <span style="color: #008000; font-weight: bold">extends</span> <span style="color: #0000FF; font-weight: bold">Trampoline</span><span style="color: #666666">[</span><span style="color: #B00040">A</span><span style="color: #666666">]</span>
+</td></tr></table></code></pre>
+</div>
+</div>
+<div class="colist arabic">
+<table>
+<tr>
+<td><i class="conum" data-value="1"></i><b>1</b></td>
+<td>Tell the Scala compiler to apply tail-call optimisation.
+As such, no new stack frame will be created when <code>runT</code> calls itself.</td>
+</tr>
+</table>
+</div>
+<div class="paragraph">
+<p><code>Trampoline</code> is an ADT that captures the steps of a computation.
+In order words, given a computation that will return a value of type <code>A</code>
+(correspond to the covariant type variable, <code>A</code>, of the above <code>Trampoline</code> ADT),
+that computation can be represented as either <code>More</code> or <code>Done</code>.
+A <code>Done</code> signifies that computation is finished,
+and the value inside <code>Done</code> will be used as the return value.
+A <code>More</code> indicates that there is a least one more step to perform for the computation.
+So go ahead and perform the step inside <code>More</code>, then see what the next step will be.</p>
+</div>
+<div class="sidebarblock">
+<div class="content">
+<div class="title">Trampoline in Haskell</div>
+<div class="paragraph">
+<p>As an aside, I much prefer the Haskell syntax; it is much more concise.
+Below is the implementation of <code>runT</code> and the <code>Trampoline</code> ADT in Haskell.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="pygments highlight"><code data-lang="haskell"><span style="color: #008000; font-weight: bold">data</span> <span style="color: #B00040">Trampoline</span> a <span style="color: #AA22FF; font-weight: bold">=</span> <span style="color: #B00040">More</span> (<span style="color: #008000">()</span> <span style="color: #AA22FF; font-weight: bold">-&gt;</span> <span style="color: #B00040">Trampoline</span> a)
+                  <span style="color: #666666">|</span> <span style="color: #B00040">Done</span> a
+
+<span style="color: #0000FF">runT</span> <span style="color: #AA22FF; font-weight: bold">::</span> <span style="color: #B00040">Trampoline</span> a <span style="color: #AA22FF; font-weight: bold">-&gt;</span> a
+<span style="color: #0000FF">runT</span> (<span style="color: #B00040">Done</span> a) <span style="color: #AA22FF; font-weight: bold">=</span> a
+<span style="color: #0000FF">runT</span> (<span style="color: #B00040">More</span> k) <span style="color: #AA22FF; font-weight: bold">=</span> runT (k <span style="color: #008000">()</span>)</code></pre>
+</div>
+</div>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_trampoline-example-odd-and-even">Trampoline Example: Odd and Even</h3>
+<div class="paragraph">
+<p>After introducing the <code>Trampoline</code> ADT, the paper shows a simple example on how to use it.
+The <code>odd</code> and <code>even</code> functions do as their names say.
+They call each other mutual recursively&#8201;&#8212;&#8201;meaning at the last step of <code>odd</code> it calls <code>even</code> and vice versa.
+Since we are using <code>Trampoline</code> to represent the <code>odd</code> and <code>even</code> computations
+and both of those computations return Boolean,
+the return types for <code>odd</code> and <code>even</code> will be <code>Trampoline[Boolean]</code>.</p>
+</div>
+<div class="paragraph">
+<p>Let&#8217;s see the code!</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="pygments highlight"><code data-lang="scala"><table class="pyhltable"><tr><td><div class="linenodiv" style="background-color: #f0f0f0; padding-right: 10px"> 1
+ 2
+ 3
+ 4
+ 5
+ 6
+ 7
+ 8
+ 9
+10
+11
+12
+13</div></td><td class="code"><span style="color: #008000; font-weight: bold">def</span> even<span style="color: #666666">[</span><span style="color: #B00040">A</span><span style="color: #666666">](</span>ns<span style="color: #008000; font-weight: bold">:</span> <span style="color: #B00040">List</span><span style="color: #666666">[</span><span style="color: #B00040">A</span><span style="color: #666666">])</span><span style="color: #008000; font-weight: bold">:</span> <span style="color: #B00040">Trampoline</span><span style="color: #666666">[</span><span style="color: #B00040">Boolean</span><span style="color: #666666">]</span> <span style="color: #008000; font-weight: bold">=</span> <i class="conum" data-value="1"></i><b>(1)</b>
+  ns <span style="color: #008000; font-weight: bold">match</span> <span style="color: #666666">{</span>
+    <span style="color: #008000; font-weight: bold">case</span> <span style="color: #0000FF; font-weight: bold">Nil</span> <span style="color: #008000; font-weight: bold">=&gt;</span> <span style="color: #0000FF; font-weight: bold">Done</span><span style="color: #666666">(</span><span style="color: #008000; font-weight: bold">true</span><span style="color: #666666">)</span>
+    <span style="color: #008000; font-weight: bold">case</span> x <span style="color: #666666">::</span> xs <span style="color: #008000; font-weight: bold">=&gt;</span> <span style="color: #0000FF; font-weight: bold">More</span><span style="color: #666666">(()</span> <span style="color: #008000; font-weight: bold">=&gt;</span> odd<span style="color: #666666">(</span>xs<span style="color: #666666">))</span> <i class="conum" data-value="2"></i><b>(2)</b>
+  <span style="color: #666666">}</span>
+
+<span style="color: #008000; font-weight: bold">def</span> odd<span style="color: #666666">[</span><span style="color: #B00040">A</span><span style="color: #666666">](</span>ns<span style="color: #008000; font-weight: bold">:</span> <span style="color: #B00040">List</span><span style="color: #666666">[</span><span style="color: #B00040">A</span><span style="color: #666666">])</span><span style="color: #008000; font-weight: bold">:</span> <span style="color: #B00040">Trampoline</span><span style="color: #666666">[</span><span style="color: #B00040">Boolean</span><span style="color: #666666">]</span> <span style="color: #008000; font-weight: bold">=</span> <i class="conum" data-value="1"></i><b>(1)</b>
+  ns <span style="color: #008000; font-weight: bold">match</span> <span style="color: #666666">{</span>
+    <span style="color: #008000; font-weight: bold">case</span> <span style="color: #0000FF; font-weight: bold">Nil</span> <span style="color: #008000; font-weight: bold">=&gt;</span> <span style="color: #0000FF; font-weight: bold">Done</span><span style="color: #666666">(</span><span style="color: #008000; font-weight: bold">false</span><span style="color: #666666">)</span>
+    <span style="color: #008000; font-weight: bold">case</span> x <span style="color: #666666">::</span> xs <span style="color: #008000; font-weight: bold">=&gt;</span> <span style="color: #0000FF; font-weight: bold">More</span><span style="color: #666666">(()</span> <span style="color: #008000; font-weight: bold">=&gt;</span> even<span style="color: #666666">(</span>xs<span style="color: #666666">))</span> <i class="conum" data-value="2"></i><b>(2)</b>
+  <span style="color: #666666">}</span>
+
+even<span style="color: #666666">(</span><span style="color: #0000FF; font-weight: bold">List</span><span style="color: #666666">(1,2,3)).</span>runT <span style="color: #408080; font-style: italic">// -&gt; False </span> <i class="conum" data-value="3"></i><b>(3)</b>
+</td></tr></table></code></pre>
+</div>
+</div>
+<div class="colist arabic">
+<table>
+<tr>
+<td><i class="conum" data-value="1"></i><b>1</b></td>
+<td>Return <code>Trampoline[Boolean]</code> rather than just <code>Boolean</code>.</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="2"></i><b>2</b></td>
+<td>Mutual recursion.</td>
+</tr>
+<tr>
+<td><i class="conum" data-value="3"></i><b>3</b></td>
+<td>Run the computation.</td>
+</tr>
+</table>
+</div>
+<div class="paragraph">
+<p>After calling <code>even(List(1,2,3))</code>, we get a value of type <code>Trampoline[Boolean]</code>.
+The value represents all the steps in the <code>even</code> computation.
+So in order to get the <code>Boolean</code> value out, we will need to run those steps.
+Hence, we need to call <code>runT</code> on the return value of <code>even</code>.
+This is why we are trading stack for heap.
+The return value of <code>even</code> contains all the computational steps.</p>
+</div>
+<div class="paragraph">
+<p>Normally, if <code>even</code> and <code>odd</code> mutually call each other and they return <code>Boolean</code> values,
+the invocation of <code>even(List.fill(4000)(1))</code> will overflow the stack.
+That is because at the end of <code>even</code>, before it can return, it calls <code>odd</code>.
+Thus, creating a new stack frame for every single element in the input list.
+By utilizing <code>Trampoline</code>, instead of having <code>even</code> calls <code>odd</code>,
+<code>even</code> just returns a step (<code>More</code>).
+The last step is to &#8216;get&#8217; the boolean value out of <code>Trampoline</code>.
+To do that, we call <code>runT</code>.
+Since <code>runT</code> is tail recursive,
+it is not allocating new stack frames.</p>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_why-is-it-called-trampoline">Why Is It Called Trampoline?</h3>
+<div class="paragraph">
+<p>By using <code>Trampoline</code>, the control flow has changed.
+Originally, <code>even</code> passing its control to <code>odd</code>,
+then <code>odd</code> passes its control to <code>even</code>, in the process,
+allocates a new stack frame for <code>even</code>.
+The back and forth goes on until it reaches the end of the input list.
+When <code>Trampoline</code> is used as the return value,
+<code>even</code> just returns a value of type <code>Trampoline</code>.
+It is up to the <code>runT</code> method of <code>Trampoline</code> to call the next step.
+So the control flow bounces from a function to <code>Trampoline</code>,
+then to another function, then back to <code>Trampoline</code> and so on.
+Every time when the control bounces back to <code>runT</code>,
+the stack frame gets deallocated.
+So there is no risk of overflowing the stack.</p>
+</div>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_applying-trampoline">Applying Trampoline</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>The logical next step is to apply the <code>Trampoline</code> technique to the <code>zipIndex</code> example
+introduced in the <a href="/articles/2016/09/08/stackless-scala-1-the-problem.html">first</a> post. And that is what we will see in the next post.</p>
+</div>
+</div>
+</div>
+  </div>
+</article>
+
+      </div>
+    </div>
+
+    <footer class="site-footer">
+
+  <div class="wrapper">
+
+    <h2 class="footer-heading small-site-title">Marco Yuen</h2>
+
+    <div class="footer-col-wrapper">
+      <div class="footer-col footer-col-1">
+        <ul class="contact-list footer-content">
+          <li>Powered By
+            <a href="https://jekyllrb.com/">Jekyll</a>
+          </li>
+          <li>
+            using <a href="http://github.com/hemangsk/Gravity">Gravity</a>
+          </li>
+        </ul>
+      </div>
+
+      <div class="footer-col footer-col-2 footer-content">
+        <ul class="social-media-list">
+          
+          <li>
+            <a href="https://github.com/marcoy"><span class="fa fa-github-alt fa-lg fa-fw"></span><span class="username">marcoy</span></a>
+
+          </li>
+          
+
+          
+          <li>
+            <a href="https://gitlab.com/marcoy"><span class="fa fa-gitlab fa-lg fa-fw"></span><span class="username">marcoy</span></a>
+
+          </li>
+          
+
+          
+          <li>
+            <a href="https://www.linkedin.com/in/marcoyuen"><span class="fa fa-linkedin fa-lg fa-fw"></span><span class="username">marcoyuen</span></a>
+
+          </li>
+          
+
+          
+          <li>
+            <a href="https://twitter.com/marcoyyk"><span class="fa fa-twitter fa-lg fa-fw"></span><span class="username">marcoyyk</span></a>
+
+          </li>
+          
+        </ul>
+      </div>
+
+      <div class="footer-col footer-col-3 site-description">
+        <p>Life and Programming</p>
+      </div>
+    </div>
+
+  </div>
+
+</footer>
+
+
+  </body>
+
+</html>
