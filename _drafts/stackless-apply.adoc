@@ -1,0 +1,41 @@
+= Stackless Scala, Part 3: Applying Trampoline
+:page-layout: post
+:page-categories: articles
+:page-tags: scala, functional programming
+:page-liquid:
+
+:part1: link:{% post_url 2016-09-08-stackless-scala-1-the-problem %}
+:part2: link:{% post_url 2016-09-11-stackless-scala-2-trampoline %}
+:stackless-pdf: http://blog.higher-order.com/assets/trampolines.pdf
+
+== Quick Recap
+In the {part2}[previous] post,
+the technique of trampoline was introduced in {stackless-pdf}[Rúnar's paper].
+Trampoline was used to solve the stack safety problem in the simple `even` and `odd` examples.
+At the end of the {part2}[last] post,
+I mentioned the logical next step would be applying the trampoline technique to the `zipIndex`
+example introduced in the {part1}[first] post.
+
+== Trampoline State
+Since the stack safety problem comes from the use of `State` action, perhaps,
+we can change the implementation of `State` to use trampoline.
+
+Here is what `State` looks like.
+
+[source,scala]
+----
+case class State[S,+A](runS: S => Trampoline[(A,S)]) { // <1>
+  def map[B](f: A => B): State[S,B] =
+    State[S,B](s => More(() => {
+      val (a, s1) = runS(s).runT
+      Done((f(a), s1))
+    }))
+
+  def flatMap[B](f: A => State[S,B]): State[S,B] =
+    State[S,B](s => More(() => {
+      val (a, s1) = runS(s).runT
+      More(() => f(a) runS s1)
+    }))
+}
+----
+<1> `runS` returns `Trampoline[(A,S)]`.
