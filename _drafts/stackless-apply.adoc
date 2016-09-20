@@ -16,15 +16,37 @@ At the end of the {part2}[last] post,
 I mentioned the logical next step would be applying the trampoline technique to the `zipIndex`
 example introduced in the {part1}[first] post.
 
-== Trampoline State
-Since the stack safety problem comes from the use of `State` action, perhaps,
-we can change the implementation of `State` to use trampoline.
+For reference, here is what the `Trampoline` data type looks like.
 
-Here is what `State` looks like.
-
-[source,scala]
+[[trampoline]]
+[source,scala,lineno]
+.Trampoline
 ----
-case class State[S,+A](runS: S => Trampoline[(A,S)]) { // <1>
+sealed trait Trampoline[+A] {
+  @tailrec
+  final def runT: A =
+    this match {
+      case More(k) => k().runT
+      case Done(v) => v
+    }
+}
+case class More[+A](k: () => Trampoline[A])
+    extends Trampoline[A]
+case class Done[+A](result: A) extends Trampoline[A]
+----
+
+== Trampoline State
+Since the stack safety problem comes from calling `flatMap` in `State` action,
+perhaps, we can change the implementation of `State` to use trampoline.
+
+Here is what the new `State` looks like.
+
+[[state_trampoline]]
+[source,scala,lineno]
+.State with Trampoline
+----
+case class State[S,+A](
+    runS: S => Trampoline[(A,S)]) { // <1>
   def map[B](f: A => B): State[S,B] =
     State[S,B](s => More(() => {
       val (a, s1) = runS(s).runT
@@ -39,3 +61,46 @@ case class State[S,+A](runS: S => Trampoline[(A,S)]) { // <1>
 }
 ----
 <1> `runS` returns `Trampoline[(A,S)]`.
+
+And, `zipIndex` needs a slight change.
+
+[source,scala,lineno]
+----
+def zipIndex[A](as: List[A]): List[(Int,A)] =
+  as.foldLeft(
+    pureState[Int, List[(Int,A)]](List())
+  )((acc,a) => for {
+    xs <- acc
+    n  <- getState[Int]
+    _  <- setState(n + 1)
+  } yield (n,a)::xs).runS(0).runT._1.reverse // <1>
+----
+<1> Adding `runT` after `runS`.
+
+However, if we run the latest incarnation of `zipIndex` above.
+We get `StackoverflowError` again!?
+The problem, this time, is caused my `runT` is not in the tail position of `flatMap`.
+As seen on line 11 of the <<state_trampoline,State with Trampoline>> listing.
+
+At this stage, the paper suggested baking in `flatMap` into the `Trampoline` data type.
+So, we add a new case class that extends the `Trampoline` trait.
+
+[source,scala,lineno]
+----
+case class More[+A](k: () => Trampoline[A])
+  extends Trampoline[A]
+case class Done[+A](result: A) extends Trampoline[A]
+case class FlatMap[A,+B]( // <1>
+  sub: Trampoline[A]
+  k: A => Trampoline[B]) extends Trampoline[B]
+----
+<1> The new `FlatMap` case class.
+
+Recall that, a `Done` tells trampoline that the computation is done,
+and use the value inside `Done` as the return value.
+A `More` tells trampoline that there are at least one more steps to perform for the computation,
+perform the step.
+The new `FlatMap` tells trampoline that there is a computation, `sub`,
+and the return value of `sub` should be passed to the continuation, `k`.
+Since we added a new case class,
+the implementation of `runT` needs to be updated.
