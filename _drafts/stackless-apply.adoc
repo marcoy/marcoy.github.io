@@ -35,7 +35,7 @@ case class More[+A](k: () => Trampoline[A])
 case class Done[+A](result: A) extends Trampoline[A]
 ----
 
-== Trampoline State
+== Applying Trampoline to State
 Since the stack safety problem comes from calling `flatMap` in `State` action,
 perhaps, we can change the implementation of `State` to use trampoline.
 
@@ -104,3 +104,66 @@ The new `FlatMap` tells trampoline that there is a computation, `sub`,
 and the return value of `sub` should be passed to the continuation, `k`.
 Since we added a new case class,
 the implementation of `runT` needs to be updated.
+In the paper, the updated `runT` implementation is split into two pieces --
+one piece is to determine how to advance the computation;
+the other piece is to run the steps in the computation.
+
+[source,scala,lineno]
+----
+@tailrec
+final def runT: A = resume match {
+  case Right(a) => a
+  case Left(k)  => k().runT
+}
+
+@tailrec
+final def resume: Either[() => Trampoline[A], A] = {
+  this match {
+    case Done(v) => Right(v)
+    case More(k) => Left(k)
+    case FlatMap(a, f) => a match {
+      case Done(v) => f(v).resume
+      case More(k) => Left(() => FlatMap(k(), f))
+      case FlatMap(b, g) =>
+        (FlatMap(b, (x: Any) => FlatMap(g(x), f)):
+           Trampoline[A]).resume
+    }
+  }
+}
+----
+
+The original `runT` method is refactored, and a new method, `resume` is introduced.
+The `resume` method is responsible for determining the next step in the computation.
+The new `runT` method just runs the steps.
+
+Let's dive a little deeper into the `resume` method.
+First, the return type of `resume` is an `Either`.
+So return value has a `Left` or `Right` value.
+When the return value has type `Left`, it will contain the next step of the computation.
+If the return value has type `Right`, it will contain the return value.
+For the pattern matching inside `resume`,
+the cases for `Done` and `More` are pretty the same as the original implementation.
+What's interesting is the case for `FlatMap`;
+the first thing it does is to match on the computation,
+first constructor argument for `FlatMap`.
+If the computation inside `FlatMap` is a value of type `Done`,
+we just pass the value inside `Done` to the continuation,
+the second constructor argument for `FlatMap`.
+The scenario makes sense so far because `FlatMap` represents the result of a computation should be
+passed into the continuation.
+The case for `More` is a little more interesting.
+Since `More` contains the next step of the computation,
+we need _run_ that step first, then feed its result to the continuation.
+And we package that up into another computational step that uses `FlatMap`, hence,
+`() => FlatMap(k(), f)`.
+The most tricky scenario is the `FlatMap` case.
+If we land on this case, it implies we have `FlatMap` nested inside another `FlatMap`.
+Something like the following:
+
+[source,scala,lineno]
+.Nested FlatMaps
+----
+FlatMap(
+  FlatMap(
+    FlatMap(..., cont3), cont2), cont1)
+----
